@@ -1,7 +1,9 @@
 # Godot
 .godot/
 *.translation
-export_presets.cfg
+
+# Build artifacts
+dist/
 
 # macOS
 .DS_Store
