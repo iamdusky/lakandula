@@ -1,0 +1,25 @@
+[gd_resource type="TileSet" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/gen/terrain_atlas.png" id="1_atlas"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_main"]
+texture = ExtResource("1_atlas")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "land"
+1:0/0 = 0
+1:0/0/custom_data_0 = "jungle"
+2:0/0 = 0
+2:0/0/custom_data_0 = "beach"
+3:0/0 = 0
+3:0/0/custom_data_0 = "river"
+4:0/0 = 0
+4:0/0/custom_data_0 = "open_water"
+5:0/0 = 0
+5:0/0/custom_data_0 = "shallows"
+
+[resource]
+tile_size = Vector2i(64, 64)
+custom_data_layer_0/name = "terrain_type"
+custom_data_layer_0/type = 4
+sources/0 = SubResource("TileSetAtlasSource_main")

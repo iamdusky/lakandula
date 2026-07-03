@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Karakoa"
+max_health = 180.0
+speed = 120.0
+damage = 20.0
+armor = 2.0
+attack_range = 240.0
+attack_interval = 2.0
+sight_range = 380.0
+cost = {
+"copper": 40,
+"rice": 100
+}
+train_time = 14.0
+terrain_speed = {
+"shallows": 1.15
+}
+terrain_damage = {}
+ability_name = "Salvo"
+ability_cooldown = 22.0

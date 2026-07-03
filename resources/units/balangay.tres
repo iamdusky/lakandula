@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Balangay"
+max_health = 100.0
+speed = 185.0
+damage = 8.0
+armor = 0.0
+attack_range = 30.0
+attack_interval = 1.0
+sight_range = 340.0
+cost = {
+"copper": 15,
+"rice": 60
+}
+train_time = 9.0
+terrain_speed = {
+"shallows": 1.2
+}
+terrain_damage = {}
+ability_name = ""
+ability_cooldown = 10.0

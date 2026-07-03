@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Babaylan"
+max_health = 45.0
+speed = 130.0
+damage = 2.0
+armor = 0.0
+attack_range = 24.0
+attack_interval = 1.2
+sight_range = 300.0
+cost = {
+"honor": 5,
+"rice": 40
+}
+train_time = 7.0
+terrain_speed = {}
+terrain_damage = {}
+ability_name = "Ritwal"
+ability_cooldown = 30.0

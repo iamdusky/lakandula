@@ -1,0 +1,37 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/soldado_tercio.gd" id="1_script"]
+[ext_resource type="Resource" path="res://resources/units/soldado_tercio.tres" id="2_data"]
+[ext_resource type="Texture2D" path="res://assets/gen/unit_soldado.png" id="3_body"]
+[ext_resource type="Texture2D" path="res://assets/gen/selection_ring.png" id="4_ring"]
+[ext_resource type="Script" path="res://scripts/units/health_bar.gd" id="5_hp"]
+
+[sub_resource type="CircleShape2D" id="shape_body"]
+radius = 10.0
+
+[node name="SoldadoTercio" type="CharacterBody2D"]
+motion_mode = 1
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_script")
+data = ExtResource("2_data")
+faction = "spain"
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture = ExtResource("3_body")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+shape = SubResource("shape_body")
+
+[node name="NavAgent" type="NavigationAgent2D" parent="."]
+path_desired_distance = 8.0
+target_desired_distance = 12.0
+radius = 10.0
+
+[node name="SelectionRing" type="Sprite2D" parent="."]
+visible = false
+texture = ExtResource("4_ring")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -22)
+script = ExtResource("5_hp")

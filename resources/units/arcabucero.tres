@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Arcabucero"
+max_health = 60.0
+speed = 120.0
+damage = 22.0
+armor = 1.0
+attack_range = 220.0
+attack_interval = 2.5
+sight_range = 340.0
+cost = {
+"gold": 50
+}
+train_time = 9.0
+terrain_speed = {
+"jungle": 0.3
+}
+terrain_damage = {
+"jungle": 0.6
+}
+ability_name = ""
+ability_cooldown = 10.0

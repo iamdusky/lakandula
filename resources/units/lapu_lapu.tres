@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Lapu-Lapu"
+max_health = 240.0
+speed = 170.0
+damage = 22.0
+armor = 3.0
+attack_range = 30.0
+attack_interval = 0.9
+sight_range = 360.0
+cost = {}
+train_time = 0.0
+terrain_speed = {
+"jungle": 1.1
+}
+terrain_damage = {
+"jungle": 1.2
+}
+ability_name = "Daluyong"
+ability_cooldown = 18.0

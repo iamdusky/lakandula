@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/unit_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Rajah Sulayman"
+max_health = 180.0
+speed = 160.0
+damage = 18.0
+armor = 1.0
+attack_range = 30.0
+attack_interval = 1.0
+sight_range = 340.0
+cost = {}
+train_time = 0.0
+terrain_speed = {}
+terrain_damage = {}
+ability_name = "Sunugin"
+ability_cooldown = 25.0

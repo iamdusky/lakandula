@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/buildings/building.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/gen/building_beachhead.png" id="2_tex"]
+[ext_resource type="Script" path="res://scripts/units/health_bar.gd" id="3_hp"]
+
+[sub_resource type="RectangleShape2D" id="shape_body"]
+size = Vector2(80, 80)
+
+[node name="SpanishBeachhead" type="StaticBody2D"]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_script")
+display_name = "Spanish Beachhead"
+max_health = 600.0
+armor = 3.0
+faction = "spain"
+attack_radius = 50.0
+gate_offset = Vector2(0, 84)
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+shape = SubResource("shape_body")
+
+[node name="HealthBar" type="Node2D" parent="."]
+position = Vector2(0, -50)
+script = ExtResource("3_hp")
+width = 60.0

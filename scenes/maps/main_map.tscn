@@ -1,0 +1,109 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_map.gd" id="1_mainmap"]
+[ext_resource type="TileSet" path="res://assets/tiles/terrain_tileset.tres" id="2_tileset"]
+[ext_resource type="Script" path="res://scripts/camera_controller.gd" id="3_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/units/mandirigma.tscn" id="5_mandirigma"]
+[ext_resource type="PackedScene" path="res://scenes/units/training_dummy.tscn" id="6_dummy"]
+[ext_resource type="PackedScene" path="res://scenes/units/lapu_lapu.tscn" id="7_lapu"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/kuta_mactan.tscn" id="8_kuta"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/barracks.tscn" id="9_barracks"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/shipyard.tscn" id="10_shipyard"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/shrine.tscn" id="11_shrine"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/spanish_beachhead.tscn" id="12_beachhead"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/spanish_camp.tscn" id="13_camp"]
+[ext_resource type="PackedScene" path="res://scenes/buildings/humabon_palace.tscn" id="14_palace"]
+[ext_resource type="PackedScene" path="res://scenes/map/datu_village.tscn" id="15_village"]
+[ext_resource type="Script" path="res://scripts/map/fog_of_war.gd" id="16_fog"]
+
+[node name="MainMap" type="Node2D"]
+script = ExtResource("1_mainmap")
+
+[node name="Terrain" type="Node2D" parent="."]
+
+[node name="WaterLayer" type="TileMapLayer" parent="Terrain"]
+position = Vector2(-1280, -800)
+tile_set = ExtResource("2_tileset")
+
+[node name="TerrainLayer" type="TileMapLayer" parent="Terrain"]
+position = Vector2(-1280, -800)
+tile_set = ExtResource("2_tileset")
+
+[node name="NavRegionLand" type="NavigationRegion2D" parent="."]
+navigation_layers = 1
+
+[node name="NavRegionNaval" type="NavigationRegion2D" parent="."]
+navigation_layers = 2
+
+[node name="NavRegionShallows" type="NavigationRegion2D" parent="." groups=["tide_shallows_region"]]
+navigation_layers = 2
+
+[node name="Buildings" type="Node2D" parent="."]
+
+[node name="KutaMactan" parent="Buildings" instance=ExtResource("8_kuta")]
+position = Vector2(-160, -128)
+
+[node name="Barracks" parent="Buildings" instance=ExtResource("9_barracks")]
+position = Vector2(-32, -192)
+
+[node name="Shipyard" parent="Buildings" instance=ExtResource("10_shipyard")]
+position = Vector2(-352, 64)
+
+[node name="Shrine" parent="Buildings" instance=ExtResource("11_shrine")]
+position = Vector2(64, -256)
+
+[node name="SpanishBeachhead" parent="Buildings" instance=ExtResource("12_beachhead")]
+position = Vector2(-96, 448)
+
+[node name="SpanishCamp" parent="Buildings" instance=ExtResource("13_camp")]
+position = Vector2(-288, 320)
+
+[node name="HumabonPalace" parent="Buildings" instance=ExtResource("14_palace")]
+position = Vector2(-1184, 0)
+
+[node name="Villages" type="Node2D" parent="."]
+
+[node name="VillageZula" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(-224, -448)
+datu_name = "Datu Zula"
+
+[node name="VillageMangal" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(928, -384)
+datu_name = "Datu Mangal"
+
+[node name="VillageBulan" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(928, 320)
+datu_name = "Datu Bulan"
+
+[node name="VillageSawili" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(96, 384)
+datu_name = "Datu Sawili"
+
+[node name="VillageLambusan" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(-224, 192)
+datu_name = "Datu Lambusan"
+
+[node name="VillageSilyo" parent="Villages" instance=ExtResource("15_village")]
+position = Vector2(-96, -256)
+datu_name = "Datu Silyo"
+
+[node name="Units" type="Node2D" parent="."]
+
+[node name="Mandirigma" parent="Units" instance=ExtResource("5_mandirigma")]
+position = Vector2(-96, 0)
+
+[node name="TrainingDummy" parent="Units" instance=ExtResource("6_dummy")]
+position = Vector2(-288, -64)
+
+[node name="LapuLapu" parent="Units" instance=ExtResource("7_lapu")]
+position = Vector2(-160, -32)
+
+[node name="Fog" type="Sprite2D" parent="."]
+script = ExtResource("16_fog")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("3_camera")
+map_limits = Rect2(-1280, -800, 2560, 1600)
+
+[node name="HUD" parent="." instance=ExtResource("4_hud")]
