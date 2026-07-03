@@ -249,10 +249,19 @@ func _step_along_path() -> void:
 		_sprite.flip_h = velocity.x < 0.0
 
 
-## Procedural placeholder animation: walk bob, idle breathing, attack lunge.
+## Sheet-based walk cycle when the sprite has hframes (humanoids, frame 0 =
+## idle); bob fallback for single-frame sprites (ships, dummy). Attack lunge
+## applies to both.
 func _animate(delta: float) -> void:
 	_anim_time += delta
 	_lunge = _lunge.move_toward(Vector2.ZERO, 40.0 * delta)
+	if _sprite.hframes > 1:
+		if velocity.length() > 5.0:
+			_sprite.frame = int(_anim_time * 9.0) % _sprite.hframes
+		else:
+			_sprite.frame = 0
+		_sprite.position = _lunge
+		return
 	var bob := 0.0
 	if velocity.length() > 5.0:
 		bob = absf(sin(_anim_time * 10.0)) * -3.0

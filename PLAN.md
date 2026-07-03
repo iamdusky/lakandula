@@ -501,6 +501,18 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 
 ---
 
+## Asset Track (post-milestone)
+
+- [x] **Procedural art v2** (2026-07-03) — real pixel-art sprites: 4-frame walk
+  cycles for all humanoids (Sprite2D hframes, frame 0 = idle), detailed ships
+  (outriggers/sails/gunports), nipa-hut & coral-stone architecture, textured
+  terrain (grass tufts, palm canopies, waves), upgraded portraits with
+  headgear. Composed kulintang music (24 s calm with melody/agung/babandil,
+  16 s battle). Still `tools/gen_assets.gd` / `gen_audio.gd` — regenerable.
+- [ ] **Commissioned assets** — full spec in [ASSETS.md](ASSETS.md): sprite
+  sheets, animated terrain, painted portraits, recorded kulintang music, SFX,
+  and Cebuano voice lines (drafts included; need native-speaker verification).
+
 ## Backlog / Future
 
 - [ ] Second map — Battle of Maynila, 1571 (Rajah Sulayman vs Legazpi)

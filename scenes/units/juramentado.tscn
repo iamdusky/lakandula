@@ -19,6 +19,7 @@ faction = "mactan"
 
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("3_body")
+hframes = 4
 
 [node name="CollisionShape" type="CollisionShape2D" parent="."]
 shape = SubResource("shape_body")

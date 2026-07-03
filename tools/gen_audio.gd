@@ -40,8 +40,10 @@ func _save(name: String, samples: PackedFloat32Array) -> void:
 
 # --- Music ---
 
+## 24 s: composed kulintang melody over agung bass gongs, babandil
+## timekeeper, and an ocean bed. Loops cleanly (phrase resolves home).
 func _gen_calm() -> PackedFloat32Array:
-	var buf := _buffer(12.0)
+	var buf := _buffer(24.0)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1521
 	# Ocean bed: low-passed noise with a slow swell.
@@ -49,31 +51,53 @@ func _gen_calm() -> PackedFloat32Array:
 	for i in buf.size():
 		var t := float(i) / RATE
 		prev = lerpf(prev, rng.randf_range(-1.0, 1.0), 0.06)
-		buf[i] += prev * (0.5 + 0.45 * sin(TAU * 0.09 * t)) * 0.09
-	# Kulintang gongs, pentatonic.
-	var scale := [262.0, 294.0, 330.0, 392.0, 440.0]
-	for step in 16:
-		if rng.randf() < 0.85:
-			_add_gong(buf, step * 0.75, scale[rng.randi_range(0, 4)], 1.4, 0.2)
+		buf[i] += prev * (0.5 + 0.45 * sin(TAU * 0.083 * t)) * 0.085
+	# Kulintang melody: two answering phrases, pentatonic (-1 = rest).
+	var scale := [262.0, 294.0, 330.0, 392.0, 440.0, 524.0]
+	var melody := [
+		0, 2, 3, 2, 4, 3, 2, -1, 1, 2, 4, 5, 4, 3, 2, -1,
+		0, 2, 3, 4, 3, 2, 1, -1, 2, 3, 4, 2, 1, 0, -1, -1,
+	]
+	for i in melody.size():
+		var note: int = melody[i]
+		if note >= 0:
+			_add_gong(buf, i * 0.75, scale[note], 1.3, 0.19)
+	# Agung bass gongs (alternating pair).
+	for i in 8:
+		_add_gong(buf, i * 3.0, 98.0 if i % 2 == 0 else 73.5, 2.6, 0.20)
+	# Babandil timekeeper on the offbeats.
+	for i in 32:
+		if i % 2 == 1:
+			_add_gong(buf, i * 0.75, 1568.0, 0.12, 0.045)
 	return buf
 
 
+## 16 s: war drums (kick + rattles), agung strikes, urgent kulintang riff
+## over a drone.
 func _gen_battle() -> PackedFloat32Array:
-	var buf := _buffer(8.0)
+	var buf := _buffer(16.0)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 27
 	for i in buf.size():
-		buf[i] += sin(TAU * 110.0 * float(i) / RATE) * 0.04  # war drone
-	for beat in 16:
+		buf[i] += sin(TAU * 110.0 * float(i) / RATE) * 0.035  # war drone
+	for beat in 32:
 		var t0 := beat * 0.5
-		_add_tone(buf, t0, 70.0, 45.0, 0.22, 0.5)  # kick
-		_add_noise(buf, t0, 0.03, 0.25, rng)
+		_add_tone(buf, t0, 70.0, 45.0, 0.22, 0.48)  # kick
+		_add_noise(buf, t0, 0.03, 0.24, rng)
 		if beat % 2 == 1:
-			_add_noise(buf, t0 + 0.25, 0.09, 0.18, rng)  # offbeat rattle
+			_add_noise(buf, t0 + 0.25, 0.09, 0.17, rng)  # offbeat rattle
+		if beat % 4 == 2:
+			_add_noise(buf, t0 + 0.375, 0.05, 0.12, rng)  # syncopation
+	for i in 8:
+		_add_gong(buf, i * 2.0, 98.0, 1.6, 0.18)  # agung strikes
+	# Urgent riff: rising four-note cells.
 	var scale := [523.0, 587.0, 659.0, 784.0, 880.0]
-	for step in 32:
-		if rng.randf() < 0.7:
-			_add_gong(buf, step * 0.25, scale[rng.randi_range(0, 4)], 0.5, 0.13)
+	var riff := [0, 2, 3, 4, 1, 3, 4, 2, 0, 2, 4, 3, 2, 4, 3, -1]
+	for cycle in 4:
+		for i in riff.size():
+			var note: int = riff[i]
+			if note >= 0 and rng.randf() < 0.9:
+				_add_gong(buf, cycle * 4.0 + i * 0.25, scale[note], 0.45, 0.12)
 	return buf
 
 
