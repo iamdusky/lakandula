@@ -4,11 +4,17 @@
 > *"If you wish to be served and obeyed, you must show good sense."*
 > — Lapu-Lapu, to Magellan's messenger
 
-**Engine:** Godot 4.3+  
+**Engine:** Godot 4.6  
 **Genre:** Single-player RTS with hero units, resource economy, base building  
 **Setting:** The Visayan archipelago, April 1521 — the days leading to and including the Battle of Mactan  
 **Player faction:** Indigenous coalition led by Lapu-Lapu  
 **Enemy factions:** Spain (Magellan), and the collaborator faction (Rajah Humabon of Cebu)
+
+> **Status (2026-07-03):** Milestones 0–12 complete — full game loop from
+> main menu to seven distinct endings, verified by a 166-check headless smoke
+> test. Procedural art v2 (pixel-art sprites with walk cycles, composed
+> kulintang music) shipped; v0.1.0 tester builds released on GitHub
+> (macOS/Windows/Linux). Next up: Milestones 13–16 below.
 
 ---
 
@@ -513,6 +519,46 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
   sheets, animated terrain, painted portraits, recorded kulintang music, SFX,
   and Cebuano voice lines (drafts included; need native-speaker verification).
 
+## Milestone 13 — Combat QoL
+**Status:** 🔲 Not started  
+**Goal:** The controls testers will expect from an RTS. Biggest known gap: units are passive unless ordered.
+
+- [ ] Auto-retaliation — idle units acquire attackers/enemies within an aggro radius (respect fog visibility)
+- [ ] Attack-move (A + RMB or A-click): move and engage anything hostile en route
+- [ ] Control groups — Ctrl+1..9 assign, 1..9 recall, double-tap centers camera
+- [ ] Rally points on production buildings (RMB with building selected)
+- [ ] Idle-worker/unit cycling key + select-all-military hotkey
+- [ ] Health bars always-on toggle
+
+## Milestone 14 — Difficulty & Replayability
+**Status:** 🔲 Not started  
+**Goal:** More than one playthrough.
+
+- [ ] Difficulty settings (Easy/Normal/Hard — scale Spanish wave size/cadence, starting powder, tribute rate)
+- [ ] Morale system (from backlog): units rout when a hero dies nearby or outnumbered 3:1
+- [ ] Mid-game save/load (managers already reset via game_started; serialize world state)
+- [ ] Post-game stats screen (units lost/killed, villages flipped, days survived)
+
+## Milestone 15 — Commissioned Asset Integration
+**Status:** 🔲 Not started — spec ready in [ASSETS.md](ASSETS.md)  
+**Goal:** Replace procedural assets with commissioned art/audio as it arrives.
+
+- [ ] Sprite sheets (idle/walk/attack/death) — extend Unit animation beyond walk cycles
+- [ ] Animated terrain (water shimmer, low-tide variant)
+- [ ] Painted portraits + title banner
+- [ ] Recorded kulintang music + full SFX set
+- [ ] Cebuano voice lines (native-speaker verified) + Spanish barks
+- [ ] Attribution/credits in codex screen
+
+## Milestone 16 — Release Engineering
+**Status:** 🔲 Not started (CI spec filed as [issue #1](https://github.com/iamdusky/lakandula/issues/1))  
+**Goal:** Public, repeatable releases.
+
+- [ ] GitHub Actions: smoke test on push; tag-triggered 3-platform release builds
+- [ ] Repo public + itch.io page
+- [ ] Code signing / notarization decision (macOS Gatekeeper, Windows SmartScreen)
+- [ ] Versioning & changelog discipline (CHANGELOG.md)
+
 ## Backlog / Future
 
 - [ ] Second map — Battle of Maynila, 1571 (Rajah Sulayman vs Legazpi)
@@ -557,4 +603,4 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 
 ---
 
-*Last updated: 2026-07-03. All 13 milestones (0–12) complete within placeholder-art constraints. The smoke test (`Godot --headless --path . -- --smoke-test`) covers the full feature set. Outstanding for a real release: actual sprite/portrait/audio assets, Cebuano voice recordings, and the Backlog above.*
+*Last updated: 2026-07-03. Milestones 0–12 complete (plus procedural art v2); Milestones 13–16 defined above are the active roadmap. The smoke test (`Godot --headless --path . -- --smoke-test`) covers the full feature set.*
