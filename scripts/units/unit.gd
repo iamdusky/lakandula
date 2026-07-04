@@ -4,7 +4,7 @@ extends CharacterBody2D
 ## Subclasses override _perform_attack() (ranged/special attacks),
 ## use_ability(), and _on_died().
 
-enum State { IDLE, MOVING, ATTACKING, ABILITY, DEAD }
+enum State { IDLE, MOVING, ATTACKING, ABILITY, DEAD, ROUTING }
 
 const CAPTURED_TINT := Color(1.0, 0.8, 0.6)
 const DEATH_COLORS := {
@@ -32,6 +32,17 @@ const AGGRO_RADIUS := 260.0
 const LEASH_RANGE := 320.0
 const AGGRO_SCAN_INTERVAL := 0.4
 
+## Morale (M14): units rout when a friendly hero dies nearby or when locally
+## outnumbered 3:1 in combat. Hero-aura'd units hold against the odds.
+const MORALE_SCAN_INTERVAL := 1.0
+const MORALE_RADIUS := 200.0
+const MORALE_OUTNUMBER_RATIO := 3
+const HERO_DEATH_ROUT_RADIUS := 400.0
+const ROUT_DURATION := 5.0
+const HERO_DEATH_ROUT_DURATION := 6.0
+const ROUT_FLEE_DISTANCE := 260.0
+const ROUT_TINT := Color(1.0, 1.0, 1.0, 0.65)
+
 var _attack_timer := 0.0
 var _ability_timer := 0.0
 var _poison_timer := 0.0
@@ -40,6 +51,9 @@ var _auto_target := false
 var _guard_position := Vector2.INF
 var _attack_move_dest := Vector2.INF
 var _aggro_accumulator := 0.0
+var _morale_accumulator := 0.0
+var _rout_timer := 0.0
+var _pre_rout_modulate := Color.WHITE
 var _aura_attack_speed := 1.0
 var _aura_damage := 1.0
 var _aura_timer := 0.0
@@ -58,6 +72,8 @@ func _ready() -> void:
 	add_to_group("faction_" + faction)
 	_selection_ring.visible = false
 	_aggro_accumulator = randf() * AGGRO_SCAN_INTERVAL  # spread scans
+	_morale_accumulator = randf() * MORALE_SCAN_INTERVAL
+	EventBus.hero_died.connect(_on_hero_died)
 
 
 func _physics_process(delta: float) -> void:
@@ -76,18 +92,24 @@ func _physics_process(delta: float) -> void:
 	if _aggro_accumulator >= AGGRO_SCAN_INTERVAL:
 		_aggro_accumulator = 0.0
 		_aggro_scan()
+	_morale_accumulator += delta
+	if _morale_accumulator >= MORALE_SCAN_INTERVAL:
+		_morale_accumulator = 0.0
+		_morale_scan()
 	match state:
 		State.MOVING:
 			_process_moving()
 		State.ATTACKING:
 			_process_attacking()
+		State.ROUTING:
+			_process_routing(delta)
 	_animate(delta)
 
 
 # --- Commands (issued by SelectionManager / AI) ---
 
 func command_move(world_pos: Vector2) -> void:
-	if state == State.DEAD:
+	if state == State.DEAD or state == State.ROUTING:
 		return
 	attack_target = null
 	_auto_target = false
@@ -98,7 +120,7 @@ func command_move(world_pos: Vector2) -> void:
 
 
 func command_attack(target: Node2D) -> void:
-	if state == State.DEAD or target == self:
+	if state == State.DEAD or state == State.ROUTING or target == self:
 		return
 	attack_target = target
 	_auto_target = false
@@ -110,7 +132,7 @@ func command_attack(target: Node2D) -> void:
 ## Move toward world_pos, engaging any hostile that comes within aggro
 ## range on the way; resumes the sweep after each kill.
 func command_attack_move(world_pos: Vector2) -> void:
-	if state == State.DEAD:
+	if state == State.DEAD or state == State.ROUTING:
 		return
 	attack_target = null
 	_auto_target = false
@@ -121,7 +143,7 @@ func command_attack_move(world_pos: Vector2) -> void:
 
 
 func stop() -> void:
-	if state == State.DEAD:
+	if state == State.DEAD or state == State.ROUTING:
 		return
 	attack_target = null
 	_auto_target = false
@@ -142,8 +164,10 @@ func take_damage(amount: float, source: Unit = null, ignore_armor := false) -> v
 	if state == State.DEAD or invulnerable or amount <= 0.0:
 		return
 	var final := amount if ignore_armor else maxf(amount - data.armor, 1.0)
-	_damage_health(final, source)
+	# Impact sound cue fires BEFORE death processing so a killing blow's
+	# game_over sting (victory/defeat) is the last sound played.
 	EventBus.combat_hit.emit(self)
+	_damage_health(final, source)
 	# Retaliation: an idle unit turns on its attacker (even beyond aggro range).
 	if state == State.IDLE and not data.passive and source != null \
 			and is_instance_valid(source) and source.faction != faction \
@@ -272,6 +296,74 @@ func _process_attacking() -> void:
 			_attack_timer = data.attack_interval / _aura_attack_speed
 			_lunge = global_position.direction_to(attack_target.global_position) * 6.0
 			_perform_attack(attack_target)
+
+
+## Morale break: flee uncontrollably away from the threat for a few seconds.
+func rout(duration := ROUT_DURATION, threat_position := Vector2.INF) -> void:
+	if state == State.DEAD or state == State.ROUTING \
+			or is_in_group("heroes") or data.speed <= 0.0:
+		return
+	if state != State.ROUTING:
+		_pre_rout_modulate = _sprite.modulate
+	attack_target = null
+	_auto_target = false
+	_attack_move_dest = Vector2.INF
+	_guard_position = Vector2.INF
+	state = State.ROUTING
+	_rout_timer = duration
+	var away := Vector2.RIGHT.rotated(randf() * TAU)
+	if threat_position != Vector2.INF and threat_position != global_position:
+		away = threat_position.direction_to(global_position)
+	nav_agent.target_position = global_position + away * ROUT_FLEE_DISTANCE
+	_sprite.modulate = _pre_rout_modulate * ROUT_TINT
+	EventBus.unit_routed.emit(self)
+
+
+## Rout ends on its timer only — a unit that reaches the map edge (or gets
+## a spuriously "finished" path on the first frame) cowers in place instead
+## of instantly recovering.
+func _process_routing(delta: float) -> void:
+	_rout_timer -= delta
+	if _rout_timer <= 0.0:
+		_sprite.modulate = _pre_rout_modulate
+		state = State.IDLE
+		velocity = Vector2.ZERO
+		return
+	if nav_agent.is_navigation_finished():
+		velocity = Vector2.ZERO
+	else:
+		_step_along_path()
+
+
+## Outnumbered 3:1 locally while fighting -> break. Hero auras steady nerves.
+func _morale_scan() -> void:
+	if state != State.ATTACKING or data.passive or is_in_group("heroes") \
+			or _aura_timer > 0.0:
+		return
+	var allies := 0
+	var enemies := 0
+	var enemy_centroid := Vector2.ZERO
+	for node in get_tree().get_nodes_in_group("units"):
+		var unit := node as Unit
+		if unit == null or unit.state == State.DEAD or unit.data.passive:
+			continue
+		if global_position.distance_to(unit.global_position) > MORALE_RADIUS:
+			continue
+		if unit.faction == faction:
+			allies += 1  # includes self
+		else:
+			enemies += 1
+			enemy_centroid += unit.global_position
+	if enemies >= MORALE_OUTNUMBER_RATIO * allies and enemies > 0:
+		rout(ROUT_DURATION, enemy_centroid / enemies)
+
+
+func _on_hero_died(hero: Node) -> void:
+	if state == State.DEAD or hero == self:
+		return
+	if hero.faction == faction \
+			and global_position.distance_to(hero.global_position) <= HERO_DEATH_ROUT_RADIUS:
+		rout(HERO_DEATH_ROUT_DURATION, hero.global_position)
 
 
 ## Idle units and attack-movers look for hostiles to engage.

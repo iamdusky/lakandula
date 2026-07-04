@@ -51,6 +51,26 @@ func start_game() -> void:
 	EventBus.game_started.emit()
 
 
+func save_state() -> Dictionary:
+	return {
+		"current_day": current_day,
+		"day_timer": _day_timer,
+		"monsoon_day": monsoon_day,
+		"powder_zero_time": _powder_zero_time,
+		"humabon_allied": _humabon_allied,
+	}
+
+
+func load_state(data: Dictionary) -> void:
+	current_day = int(data.get("current_day", 1))
+	_day_timer = data.get("day_timer", 0.0)
+	monsoon_day = int(data.get("monsoon_day", MONSOON_DAY))
+	_powder_zero_time = data.get("powder_zero_time", 0.0)
+	_humabon_allied = data.get("humabon_allied", false)
+	game_active = true
+	EventBus.day_advanced.emit(current_day)  # refresh HUD
+
+
 func end_game(winner: String, condition: String) -> void:
 	if not game_active:
 		return

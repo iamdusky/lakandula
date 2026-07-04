@@ -39,6 +39,9 @@ func _ready() -> void:
 
 	_add_button(box, "Play", func() -> void:
 		SceneFlow.goto("res://scenes/ui/mission_briefing.tscn"))
+	if SaveGame.has_save():
+		_add_button(box, "Continue (load save)", func() -> void:
+			SaveGame.load_into_battle())
 	_add_button(box, "Historical Codex", func() -> void:
 		SceneFlow.goto("res://scenes/ui/historical_codex.tscn"))
 	_add_button(box, "Settings", func() -> void:

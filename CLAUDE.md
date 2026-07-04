@@ -96,7 +96,17 @@ non-invulnerable enemies within min(sight, 260) px, with a 320 px leash;
 damaged idle units retaliate against their attacker; `command_attack_move()`
 sweeps. `UnitData.passive` (Fraile/Babaylan/dummy) opts out of auto-combat
 both ways — smoke-test scenarios must park idle armies away from scripted
-fights or they will join them. Subclass hooks:
+fights or they will join them. Morale (M14): non-hero units rout
+(uncontrollable ~5 s) on nearby friendly hero death (400 px) or 3:1 local
+odds while fighting (200 px, passive units excluded from counts); test
+skirmishes must be staged >400 px from bystander armies AND stray walkers
+must be cleaned up (see the M8 scout) or checks get photobombed.
+
+Save/load: `SaveGame` autoload (user://save.json), F5/F9 in battle, Continue
+in the menu; managers expose `save_state()`/`load_state()`. `GameStats`
+tracks session stats for the game-over screen. Difficulty:
+`GameSettings.DIFFICULTY` table, `difficulty_value(key)` — scales Spanish
+waves/landing/powder/tribute; smoke test pins "normal" at start. Subclass hooks:
 `_perform_attack(target)` for ranged/special attacks, `use_ability()` (Q),
 `_on_died()`. `Hero` adds a 0.5 s aura pulse (`_apply_aura()`) and respawn
 (20 s) instead of permadeath. Roster: Mandirigma, Mamamana (poison arrows),

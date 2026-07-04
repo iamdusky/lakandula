@@ -28,6 +28,20 @@ func _on_game_started() -> void:
 	researched = {"mactan": [], "spain": []}
 
 
+func save_state() -> Dictionary:
+	return {"mactan": researched["mactan"].duplicate(), "spain": researched["spain"].duplicate()}
+
+
+## Restores the researched lists only — passive effects are queried live and
+## one-shot effects' consequences (building stats, spawned ships, tokens)
+## are restored by SaveGame from the world snapshot.
+func load_state(data: Dictionary) -> void:
+	researched = {"mactan": [], "spain": []}
+	for faction in researched:
+		for id in data.get(faction, []):
+			researched[faction].append(String(id))
+
+
 func all_techs() -> Array[TechData]:
 	var list: Array[TechData] = []
 	for id in _techs:

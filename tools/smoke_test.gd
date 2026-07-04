@@ -22,6 +22,9 @@ func _ready() -> void:
 
 func _run() -> void:
 	await _wait(0.6)
+	# Difficulty persists across runs — pin it so scripted counts (landing
+	# size, starting powder) are deterministic.
+	GameSettings.set_difficulty("normal")
 
 	# --- Milestone 1: core loop ---
 	var warrior := get_tree().get_first_node_in_group("faction_mactan") as Unit
@@ -413,6 +416,9 @@ func _run() -> void:
 	_check(scout.visible, "Ritwal reveal exposes hidden enemies")
 	await _wait(1.6)
 	_check(not scout.visible, "reveal expires, fog returns")
+	# The scout slowly wanders toward the Kuta for the rest of the run and
+	# would stumble into the M13/M14 skirmish arenas — retire it.
+	scout.take_damage(999999.0, null, true)
 
 	var minimap := get_tree().current_scene.get_node("HUD/Minimap")
 	_check(minimap != null, "minimap present")
@@ -571,41 +577,49 @@ func _run() -> void:
 		"codex unlocks persisted (%d)" % GameSettings.codex_unlocked.size())
 
 	# --- Milestone 13: combat QoL ---
+	# Micro-skirmishes need deterministic states: stop the Spanish AI from
+	# re-tasking idle test units mid-check. Re-enabled after M14.
+	SpanishAI.set_process(false)
+
 	# Auto-acquire: an idle unit engages a hostile that appears in range.
-	var sentry := UnitSpawner.spawn(MANDIRIGMA, Vector2(300, -440), "mactan", true)
-	var intruder := UnitSpawner.spawn(SOLDADO, Vector2(430, -440), "spain", true)
+	# (Staged far from the parked army — chasing toward it would trigger a
+	# legitimate 3:1 morale rout and clear the intruder's target.)
+	var sentry := UnitSpawner.spawn(MANDIRIGMA, Vector2(600, -200), "mactan", true)
+	var intruder := UnitSpawner.spawn(SOLDADO, Vector2(730, -200), "spain", true)
 	await _wait(0.9)  # fog update + aggro scan
 	_check(sentry.state == Unit.State.ATTACKING and sentry.attack_target == intruder,
 		"idle unit auto-acquires nearby enemy")
+	if intruder.state == Unit.State.IDLE:
+		intruder._aggro_scan()  # don't race the randomized scan stagger
 	_check(intruder.attack_target == sentry, "enemy retaliates in kind")
 	intruder.take_damage(999999.0, null, true)
 	await _wait(0.2)
 
 	# Passive units are not auto-acquired (friars must be hunted deliberately).
-	var monk := UnitSpawner.spawn(FRAILE, Vector2(300, -360), "spain", true)
+	var monk := UnitSpawner.spawn(FRAILE, Vector2(600, -120), "spain", true)
 	await _wait(0.9)
 	_check(sentry.state == Unit.State.IDLE, "passive friar is not auto-acquired")
 	_check(monk.attack_target == null, "passive friar never attacks")
 	monk.take_damage(999999.0, null, true)
 
 	# Retaliation against an attacker beyond aggro range.
-	var sniper := UnitSpawner.spawn(SOLDADO, Vector2(660, -440), "spain", true)
+	var sniper := UnitSpawner.spawn(SOLDADO, Vector2(960, -200), "spain", true)
 	sentry.take_damage(2.0, sniper)
 	_check(sentry.attack_target == sniper, "damaged idle unit retaliates against attacker")
 	sniper.take_damage(999999.0, null, true)
 	await _wait(0.2)
 
 	# Attack-move: engage en route, then resume the sweep.
-	var blocker := UnitSpawner.spawn(SOLDADO, Vector2(480, -420), "spain", true)
+	var blocker := UnitSpawner.spawn(SOLDADO, Vector2(500, -200), "spain", true)
 	blocker.health = 10.0
 	sentry.stop()
-	sentry.global_position = Vector2(300, -420)
+	sentry.global_position = Vector2(380, -200)
 	# Distant destination so the sweep is still in progress at check time.
-	sentry.command_attack_move(Vector2(1000, -420))
+	sentry.command_attack_move(Vector2(1000, -200))
 	await _wait(1.4)
 	_check(sentry.attack_target == blocker or not is_instance_valid(blocker),
 		"attack-move engages enemies on the way")
-	await _wait(2.6)
+	await _wait(2.2)
 	_check(not is_instance_valid(blocker) or blocker.is_dead(), "attack-move kill confirmed")
 	_check(sentry._attack_move_dest != Vector2.INF and sentry.state == Unit.State.MOVING,
 		"attack-move resumes toward its destination")
@@ -648,6 +662,66 @@ func _run() -> void:
 	GameSettings.set_health_bars_always(true)
 	_check(GameSettings.health_bars_always, "health bars always-on toggle")
 	GameSettings.set_health_bars_always(false)
+	# The sentry parked near the M14 morale arena would skew ally counts.
+	sentry.take_damage(999999.0, null, true)
+
+	# --- Milestone 14: difficulty, morale, save/load, stats ---
+	GameSettings.set_difficulty("hard")
+	_check(int(GameSettings.difficulty_value("start_powder")) == 130
+		and is_equal_approx(float(GameSettings.difficulty_value("wave_interval")), 40.0),
+		"difficulty table (hard) plumbed")
+	GameSettings.set_difficulty("normal")
+
+	# Morale: outnumbered 3:1 in combat -> rout, uncontrollable, recovers.
+	var brave := UnitSpawner.spawn(MANDIRIGMA, Vector2(500, -80), "mactan", true)
+	brave.health = 400.0
+	var mob: Array = []
+	for i in 4:
+		mob.append(UnitSpawner.spawn(SOLDADO, Vector2(460 + 30 * i, -40), "spain", true))
+	await _wait(0.5)  # fog reveal
+	brave.command_attack(mob[0])
+	await _wait(1.6)  # morale tick
+	if brave.state == Unit.State.ATTACKING:
+		brave._morale_scan()  # don't race the randomized scan stagger
+	_check(brave.state == Unit.State.ROUTING, "outnumbered 3:1 -> unit routs")
+	brave.command_move(Vector2(700, -300))
+	_check(brave.state == Unit.State.ROUTING, "routing units ignore commands")
+	for soldier in mob:
+		soldier.take_damage(999999.0, null, true)
+	await _wait(5.8)
+	_check(brave.state != Unit.State.ROUTING, "rout ends, unit recovers")
+
+	# Morale: a friendly hero falling nearby breaks the line.
+	var fallen_hero := UnitSpawner.spawn(SULAYMAN, brave.global_position + Vector2(60, 0), "mactan", true)
+	await _wait(0.3)
+	fallen_hero.take_damage(999999.0, null, true)
+	_check(brave.state == Unit.State.ROUTING, "hero death routs nearby allies")
+
+	# Mid-game save: file written, world snapshot inside.
+	_check(SaveGame.save() and SaveGame.has_save(), "mid-game save written")
+	var save_file := FileAccess.open("user://save.json", FileAccess.READ)
+	var save_data: Dictionary = JSON.parse_string(save_file.get_as_text())
+	save_file.close()
+	_check(save_data.get("units", []).size() > 10
+		and int(save_data["victory"]["current_day"]) == VictoryManager.current_day,
+		"save contains world snapshot (%d units)" % save_data.get("units", []).size())
+	# Manager state survives the save format round-trip.
+	var diplo_state := DiplomacyManager.save_state()
+	DiplomacyManager.humabon_state = DiplomacyManager.HumabonState.SPAIN_ALLY
+	DiplomacyManager.load_state(diplo_state)
+	_check(DiplomacyManager.humabon_state == DiplomacyManager.HumabonState.ALLIED_MACTAN,
+		"manager state round-trips through save format")
+
+	# Stats tracking.
+	var kills_before: int = GameStats.stats["units_killed"]
+	var victim := UnitSpawner.spawn(SOLDADO, Vector2(900, -300), "spain", true)
+	victim.take_damage(999999.0, null, true)
+	_check(GameStats.stats["units_killed"] == kills_before + 1, "kill counted in stats")
+	_check(GameStats.stats["villages_allied"] >= 1 and GameStats.stats["units_lost"] >= 1,
+		"session stats accumulated")
+	_check(GameStats.summary().contains("Warriors lost"), "stats summary renders")
+	brave.take_damage(999999.0, null, true)  # cleanup
+	SpanishAI.set_process(true)
 
 	# --- Milestone 7: victory & loss conditions ---
 	var results: Array = []
@@ -672,6 +746,8 @@ func _run() -> void:
 		"full conversion -> Spain victory")
 	_check(screen.visible and screen.get_node("Center/Box/TitleLabel").text == "DEFEAT",
 		"defeat screen shown")
+	_check(screen.get_node("Center/Box/StatsLabel").text.contains("Warriors lost"),
+		"post-game stats shown")
 	_check(AudioManager.last_sfx == "defeat", "defeat sting played")
 	_check(get_tree().paused, "game paused on game over")
 	_reset_game_over(screen)

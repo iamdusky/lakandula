@@ -54,6 +54,23 @@ func _ready() -> void:
 	objectives.modulate = Color(0.95, 0.85, 0.6)
 	box.add_child(objectives)
 
+	var difficulty_row := HBoxContainer.new()
+	difficulty_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	difficulty_row.add_theme_constant_override("separation", 12)
+	box.add_child(difficulty_row)
+	var difficulty_label := Label.new()
+	difficulty_label.text = "Difficulty"
+	difficulty_row.add_child(difficulty_label)
+	var difficulty_options := OptionButton.new()
+	var levels := ["easy", "normal", "hard"]
+	for i in levels.size():
+		difficulty_options.add_item(levels[i].capitalize(), i)
+		if levels[i] == GameSettings.difficulty:
+			difficulty_options.select(i)
+	difficulty_options.item_selected.connect(func(index: int) -> void:
+		GameSettings.set_difficulty(levels[index]))
+	difficulty_row.add_child(difficulty_options)
+
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 24)

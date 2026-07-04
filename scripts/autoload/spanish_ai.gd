@@ -121,11 +121,36 @@ func _tick() -> void:
 			_task_frailes()
 			_maintain_frailes()
 			_wave_accumulator += TICK
-			if _wave_accumulator >= WAVE_INTERVAL:
+			if _wave_accumulator >= float(GameSettings.difficulty_value("wave_interval")):
 				_wave_accumulator = 0.0
 				_spawn_wave()
 		State.DESPERATE:
 			_press_the_assault()
+
+
+func save_state() -> Dictionary:
+	return {
+		"state": state,
+		"wave_accumulator": _wave_accumulator,
+		"wave_number": _wave_number,
+		"powder_warning_sent": _powder_warning_sent,
+		"resupply_left": _resupply_timer.time_left if _resupply_timer != null else POWDER_RESUPPLY_INTERVAL,
+	}
+
+
+## Called after saved units are respawned — relinks Magellan.
+func load_state(data: Dictionary) -> void:
+	state = int(data.get("state", State.SAIL_IN)) as State
+	_wave_accumulator = data.get("wave_accumulator", 0.0)
+	_wave_number = int(data.get("wave_number", 0))
+	_powder_warning_sent = data.get("powder_warning_sent", false)
+	if _resupply_timer != null:
+		_resupply_timer.start(maxf(1.0, data.get("resupply_left", POWDER_RESUPPLY_INTERVAL)))
+	magellan = null
+	for node in get_tree().get_nodes_in_group("heroes"):
+		if node.faction == FACTION:
+			magellan = node
+			break
 
 
 # --- State entries ---
@@ -148,9 +173,9 @@ func _land_troops() -> void:
 		var unit := node as Unit
 		if unit != null:
 			unit.invulnerable = false
-	for i in 4:
+	for i in int(GameSettings.difficulty_value("landing_soldados")):
 		UnitSpawner.spawn(SOLDADO_SCENE, LANDING_ZONE + Vector2(-60 + 40 * i, 0), FACTION, true)
-	for i in 3:
+	for i in int(GameSettings.difficulty_value("landing_arcabuceros")):
 		UnitSpawner.spawn(ARCABUCERO_SCENE, LANDING_ZONE + Vector2(-40 + 40 * i, 44), FACTION, true)
 	EventBus.hud_notification.emit("The Spanish have landed on the southern beach!")
 	EventBus.minimap_ping.emit(LANDING_ZONE)
@@ -220,7 +245,7 @@ func _spawn_wave() -> void:
 	_wave_number += 1
 	var muster := camp.global_position + camp.gate_offset
 	var target := _primary_target()
-	var soldado_count := 2 + _wave_number / 3
+	var soldado_count := maxi(1, 2 + _wave_number / 3 + int(GameSettings.difficulty_value("wave_bonus")))
 	for i in soldado_count:
 		var soldado := UnitSpawner.spawn(SOLDADO_SCENE, muster + Vector2(-60 + 40 * i, 0), FACTION)
 		if soldado != null and target != null:

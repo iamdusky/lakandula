@@ -49,6 +49,31 @@ func _on_game_started() -> void:
 	katipunan_offered = false
 
 
+func save_state() -> Dictionary:
+	return {
+		"ledger": utang_ledger.duplicate(true),
+		"disgrace": disgrace.duplicate(),
+		"humabon_state": humabon_state,
+		"enrique_fired": enrique_fired,
+		"katipunan_offered": katipunan_offered,
+	}
+
+
+func load_state(data: Dictionary) -> void:
+	utang_ledger = {}
+	var ledger: Dictionary = data.get("ledger", {})
+	for datu in ledger:
+		utang_ledger[datu] = {}
+		for faction in ledger[datu]:
+			utang_ledger[datu][faction] = int(ledger[datu][faction])
+	disgrace = {}
+	for faction in data.get("disgrace", {}):
+		disgrace[faction] = int(data["disgrace"][faction])
+	humabon_state = int(data.get("humabon_state", HumabonState.SPAIN_ALLY)) as HumabonState
+	enrique_fired = data.get("enrique_fired", false)
+	katipunan_offered = data.get("katipunan_offered", false)
+
+
 func get_tokens(datu: String, faction: String) -> int:
 	return utang_ledger.get(datu, {}).get(faction, 0)
 

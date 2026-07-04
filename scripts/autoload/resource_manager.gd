@@ -59,6 +59,7 @@ func _on_tech_researched(faction: String, tech_id: String) -> void:
 ## Fresh economy on every game start (retry reloads the scene, not autoloads).
 func _on_game_started() -> void:
 	resources = STARTING_RESOURCES.duplicate(true)
+	resources[FACTION_SPAIN]["powder"] = GameSettings.difficulty_value("start_powder")
 	_datu_allegiance.clear()
 	_spain_tribute_active = false
 	_humabon_flipped = false
@@ -95,7 +96,30 @@ func _on_income_tick() -> void:
 		gains[resource] = roundi(MACTAN_BASE_INCOME[resource] * multiplier)
 	add(FACTION_MACTAN, gains)
 	if _spain_tribute_active:
-		add(FACTION_SPAIN, SPAIN_BASE_INCOME)
+		add(FACTION_SPAIN, {"gold": GameSettings.difficulty_value("tribute_gold")})
+
+
+func save_state() -> Dictionary:
+	return {
+		"resources": resources.duplicate(true),
+		"datu_allegiance": _datu_allegiance.duplicate(),
+		"tribute": _spain_tribute_active,
+		"humabon_flipped": _humabon_flipped,
+		"ally_income_bonus": ally_income_bonus,
+	}
+
+
+func load_state(data: Dictionary) -> void:
+	var loaded: Dictionary = data.get("resources", {})
+	for faction in resources:
+		for resource in resources[faction]:
+			resources[faction][resource] = int(loaded.get(faction, {}).get(resource, resources[faction][resource]))
+	_datu_allegiance = data.get("datu_allegiance", {}).duplicate()
+	_spain_tribute_active = data.get("tribute", false)
+	_humabon_flipped = data.get("humabon_flipped", false)
+	ally_income_bonus = data.get("ally_income_bonus", ALLY_INCOME_BONUS)
+	EventBus.resources_changed.emit(FACTION_MACTAN, resources[FACTION_MACTAN])
+	EventBus.resources_changed.emit(FACTION_SPAIN, resources[FACTION_SPAIN])
 
 
 func get_amount(faction: String, resource: String) -> int:

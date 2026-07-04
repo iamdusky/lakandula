@@ -22,3 +22,12 @@ func _ready() -> void:
 	if "--screenshot" in OS.get_cmdline_user_args():
 		var capture: Node = load("res://tools/screenshot_capture.gd").new()
 		add_child(capture)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("save_game"):
+		if SaveGame.save():
+			EventBus.hud_notification.emit("Game saved (F9 to load).")
+	elif event.is_action_pressed("load_game"):
+		if SaveGame.has_save():
+			SaveGame.load_into_battle()

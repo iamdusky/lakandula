@@ -56,6 +56,15 @@ func phase_name() -> String:
 	return Phase.keys()[phase]
 
 
+func save_state() -> Dictionary:
+	return {"phase": phase, "time_left": _time_left}
+
+
+func load_state(data: Dictionary) -> void:
+	force_phase(int(data.get("phase", Phase.HIGH)) as Phase)
+	_time_left = data.get("time_left", PHASE_DURATION)
+
+
 ## Units multiply their speed by this (tide is a global modifier, queried
 ## like TerrainManager).
 func speed_multiplier(unit: Node) -> float:

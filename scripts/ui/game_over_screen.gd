@@ -15,6 +15,7 @@ const RESULTS := {
 
 @onready var _title: Label = $Center/Box/TitleLabel
 @onready var _body: Label = $Center/Box/BodyLabel
+@onready var _stats: Label = $Center/Box/StatsLabel
 @onready var _retry: Button = $Center/Box/Buttons/RetryButton
 @onready var _menu: Button = $Center/Box/Buttons/MenuButton
 @onready var _quit: Button = $Center/Box/Buttons/QuitButton
@@ -33,6 +34,7 @@ func _on_game_over(_winner: String, condition: String) -> void:
 	var entry: Array = RESULTS.get(condition, ["GAME OVER", ""])
 	_title.text = entry[0]
 	_body.text = entry[1]
+	_stats.text = GameStats.summary()
 	visible = true
 
 

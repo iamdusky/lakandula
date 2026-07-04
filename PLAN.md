@@ -542,13 +542,28 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 - [x] Health bars always-on toggle (Settings; persisted)
 
 ## Milestone 14 — Difficulty & Replayability
-**Status:** 🔲 Not started  
+**Status:** ✅ Complete (2026-07-04)  
 **Goal:** More than one playthrough.
 
-- [ ] Difficulty settings (Easy/Normal/Hard — scale Spanish wave size/cadence, starting powder, tribute rate)
-- [ ] Morale system (from backlog): units rout when a hero dies nearby or outnumbered 3:1
-- [ ] Mid-game save/load (managers already reset via game_started; serialize world state)
-- [ ] Post-game stats screen (units lost/killed, villages flipped, days survived)
+> Implementation notes: difficulty lives in GameSettings.DIFFICULTY (easy/
+> normal/hard), chosen on the briefing screen, persisted; it scales wave
+> interval (65/50/40 s), wave size (±1 soldado), landing force, starting
+> powder (80/100/130), and tribute (4/5/7 gold). Morale: units rout 5-6 s
+> (uncontrollable, pale tint, flee ~260 px) when a friendly hero dies within
+> 400 px or when outnumbered 3:1 within 200 px while fighting; heroes and
+> speed-0 units never rout; hero-aura'd units hold; passive units don't count
+> toward the ratio. Save/load: user://save.json via SaveGame autoload —
+> managers expose save_state()/load_state(); F5/F9 in battle, Continue on
+> the menu. Not preserved (documented): projectiles in flight, fog
+> exploration, capture tints, heroes mid-respawn. Stats via GameStats
+> (kills approximated as any non-Mactan death). Testing this milestone
+> surfaced two real fixes: combat_hit now fires before death processing
+> (victory sting was being overwritten), and rout ends on its timer only.
+
+- [x] Difficulty settings (Easy/Normal/Hard — scale Spanish wave size/cadence, landing, starting powder, tribute rate; briefing selector)
+- [x] Morale system: units rout when a hero dies nearby or outnumbered 3:1 (leashed to timer; aura grants courage)
+- [x] Mid-game save/load (F5/F9 + menu Continue; full manager + world snapshot; limits documented)
+- [x] Post-game stats screen (day, losses, kills, villages, techs — on the game-over screen)
 
 ## Milestone 15 — Commissioned Asset Integration
 **Status:** 🔲 Not started — spec ready in [ASSETS.md](ASSETS.md)  
