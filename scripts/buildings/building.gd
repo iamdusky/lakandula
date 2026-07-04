@@ -21,6 +21,9 @@ const QUEUE_MAX := 5
 var health := 0.0
 ## Production queue: [{ "scene": PackedScene, "remaining": float }]
 var queue: Array[Dictionary] = []
+## Trained units walk here after emerging at the gate (RMB with the
+## building selected). Vector2.INF = no rally.
+var rally_point := Vector2.INF
 
 @onready var _health_bar: Node2D = $HealthBar
 
@@ -37,7 +40,9 @@ func _process(delta: float) -> void:
 	queue[0]["remaining"] -= delta
 	if queue[0]["remaining"] <= 0.0:
 		var entry: Dictionary = queue.pop_front()
-		UnitSpawner.spawn(entry["scene"], global_position + gate_offset, faction, true)
+		var unit := UnitSpawner.spawn(entry["scene"], global_position + gate_offset, faction, true)
+		if unit != null and rally_point != Vector2.INF:
+			unit.command_move(rally_point)
 		queue_changed.emit()
 
 
@@ -78,6 +83,22 @@ func cancel_queued(index := -1) -> bool:
 	ResourceManager.add(faction, refund)
 	queue_changed.emit()
 	return true
+
+
+func set_rally_point(world_pos: Vector2) -> void:
+	rally_point = world_pos
+	queue_redraw()
+
+
+func _draw() -> void:
+	if rally_point == Vector2.INF:
+		return
+	var local := to_local(rally_point)
+	draw_line(Vector2.ZERO, local, Color(0.45, 0.95, 0.55, 0.30), 1.5)
+	draw_line(local, local + Vector2(0, -12), Color(0.9, 0.85, 0.7), 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		local + Vector2(0, -12), local + Vector2(9, -9), local + Vector2(0, -6),
+	]), Color(0.45, 0.95, 0.55))
 
 
 func take_damage(amount: float, _source: Node = null, ignore_armor := false) -> void:

@@ -21,3 +21,4 @@ terrain_speed = {}
 terrain_damage = {}
 ability_name = "Ritwal"
 ability_cooldown = 30.0
+passive = true

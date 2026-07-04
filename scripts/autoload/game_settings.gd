@@ -8,6 +8,7 @@ const PATH := "user://settings.cfg"
 var music_volume := 0.8
 var sfx_volume := 0.9
 var scroll_speed_scale := 1.0
+var health_bars_always := false
 var fullscreen := false
 var resolution := Vector2i(1600, 900)
 var codex_unlocked: Array = []
@@ -43,6 +44,12 @@ func set_scroll_speed_scale(value: float) -> void:
 	save_settings()
 
 
+func set_health_bars_always(value: bool) -> void:
+	health_bars_always = value
+	save_settings()
+	EventBus.settings_changed.emit()
+
+
 func set_fullscreen(value: bool) -> void:
 	fullscreen = value
 	apply_display()
@@ -74,6 +81,7 @@ func save_settings() -> void:
 	config.set_value("audio", "music_volume", music_volume)
 	config.set_value("audio", "sfx_volume", sfx_volume)
 	config.set_value("game", "scroll_speed_scale", scroll_speed_scale)
+	config.set_value("game", "health_bars_always", health_bars_always)
 	config.set_value("display", "fullscreen", fullscreen)
 	config.set_value("display", "resolution", resolution)
 	config.set_value("codex", "unlocked", codex_unlocked)
@@ -87,6 +95,7 @@ func load_settings() -> void:
 	music_volume = config.get_value("audio", "music_volume", music_volume)
 	sfx_volume = config.get_value("audio", "sfx_volume", sfx_volume)
 	scroll_speed_scale = config.get_value("game", "scroll_speed_scale", scroll_speed_scale)
+	health_bars_always = config.get_value("game", "health_bars_always", health_bars_always)
 	fullscreen = config.get_value("display", "fullscreen", fullscreen)
 	resolution = config.get_value("display", "resolution", resolution)
 	codex_unlocked = config.get_value("codex", "unlocked", codex_unlocked)

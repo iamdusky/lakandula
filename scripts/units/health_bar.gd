@@ -10,9 +10,13 @@ const HEIGHT := 4.0
 @onready var _owner: Node2D = get_parent()
 
 
+func _ready() -> void:
+	EventBus.settings_changed.connect(queue_redraw)
+
+
 func _draw() -> void:
 	var max_health: float = _owner.get_max_health()
-	if _owner.health >= max_health:
+	if _owner.health >= max_health and not GameSettings.health_bars_always:
 		return
 	var ratio: float = _owner.health / max_health
 	draw_rect(Rect2(-width * 0.5, 0, width, HEIGHT), Color(0, 0, 0, 0.6))

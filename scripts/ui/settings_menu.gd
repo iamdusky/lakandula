@@ -49,6 +49,13 @@ func _ready() -> void:
 		GameSettings.set_resolution(RESOLUTIONS[index]))
 	resolution_row.add_child(options)
 
+	var health_bars := CheckBox.new()
+	health_bars.text = "Always show health bars"
+	health_bars.button_pressed = GameSettings.health_bars_always
+	health_bars.toggled.connect(func(pressed: bool) -> void:
+		GameSettings.set_health_bars_always(pressed))
+	box.add_child(health_bars)
+
 	var fullscreen := CheckBox.new()
 	fullscreen.text = "Fullscreen"
 	fullscreen.button_pressed = GameSettings.fullscreen

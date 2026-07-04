@@ -22,3 +22,7 @@ extends Resource
 
 @export var ability_name := ""
 @export var ability_cooldown := 10.0
+
+## Passive units (Fraile, Babaylan, training dummy) never auto-acquire
+## targets and are never auto-acquired — they must be attacked deliberately.
+@export var passive := false

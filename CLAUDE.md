@@ -71,7 +71,7 @@ navigation_layers 1, naval units 2; the shallows region is layer 2 normally,
 
 ## Input actions (project.godot)
 
-`camera_up/left/down/right` (WASD), `camera_zoom_in/out` (wheel), `select` (LMB — units and own buildings), `command` (RMB), `ability` (Q), `stop` (Space), `toggle_diplomacy` (T), `toggle_tech` (R), `toggle_codex` (C).
+`camera_up/left/down/right` (WASD), `camera_zoom_in/out` (wheel), `select` (LMB — units and own buildings), `command` (RMB; Ctrl/Cmd+RMB = attack-move; on a selected building = rally point), `attack_move` (F, arms next click), `cycle_idle` (Tab), `ability` (Q), `stop` (Space), `toggle_diplomacy` (T), `toggle_tech` (R), `toggle_codex` (C). Raw keys in SelectionManager: Ctrl/Cmd+1-9 assign control groups, 1-9 recall (double-tap centers), Ctrl/Cmd+A select army.
 
 Building footprints are carved from the land navmesh at map build (MapBuilder
 reads `Buildings` children's collision rects) — units path around structures.
@@ -90,7 +90,13 @@ UI: DiplomacyPanel in the HUD, toggled with T.
 
 `Unit` (scripts/units/unit.gd) owns the state machine, nav movement, armor
 (flat reduction, min 1; poison and Matay bypass it), poison DoT, stun, heal,
-short-pulse hero auras, and `capture()` (boarding/defection). Subclass hooks:
+short-pulse hero auras, and `capture()` (boarding/defection). Auto-combat
+(M13): idle units scan every 0.4 s and acquire non-passive, visible,
+non-invulnerable enemies within min(sight, 260) px, with a 320 px leash;
+damaged idle units retaliate against their attacker; `command_attack_move()`
+sweeps. `UnitData.passive` (Fraile/Babaylan/dummy) opts out of auto-combat
+both ways — smoke-test scenarios must park idle armies away from scripted
+fights or they will join them. Subclass hooks:
 `_perform_attack(target)` for ranged/special attacks, `use_ability()` (Q),
 `_on_died()`. `Hero` adds a 0.5 s aura pulse (`_apply_aura()`) and respawn
 (20 s) instead of permadeath. Roster: Mandirigma, Mamamana (poison arrows),

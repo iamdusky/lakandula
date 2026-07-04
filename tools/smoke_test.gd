@@ -5,6 +5,7 @@ extends Node
 
 const MANDIRIGMA := preload("res://scenes/units/mandirigma.tscn")
 const SOLDADO := preload("res://scenes/units/soldado_tercio.tscn")
+const FRAILE := preload("res://scenes/units/fraile.tscn")
 const MAMAMANA := preload("res://scenes/units/mamamana.tscn")
 const SULAYMAN := preload("res://scenes/units/rajah_sulayman.tscn")
 const JURAMENTADO := preload("res://scenes/units/juramentado.tscn")
@@ -114,6 +115,13 @@ func _run() -> void:
 		raider.command_attack(prize)
 		await _wait(3.0)
 		_check(prize.faction == "mactan", "boarding captured the crippled ship (faction: %s)" % prize.faction)
+
+	# M13 stabilization: with auto-retaliation live, idle ships parked near
+	# the Spanish anchorage would brawl with the fleet once its grace period
+	# ends. Park the flotilla out of everyone's aggro range.
+	galley.global_position = Vector2(-672, 440)
+	raider.global_position = Vector2(-704, 500)
+	prize.global_position = Vector2(-672, 560)
 
 	# --- Milestone 2: Babaylan healing ---
 	var healer := UnitSpawner.spawn(BABAYLAN, warrior.global_position + Vector2(40, 0), "mactan") as Babaylan
@@ -251,6 +259,19 @@ func _run() -> void:
 	var galleon_health := galleon.health
 	galleon.take_damage(50.0)
 	_check(galleon.health == galleon_health, "fleet invulnerable during grace period")
+
+	# M13 stabilization: park every Mactan land unit in the northern
+	# clearing before Spain lands — otherwise auto-retaliation drags them
+	# (including Lapu-Lapu) into the scripted push, breaking later checks.
+	var park_index := 0
+	for park_node in get_tree().get_nodes_in_group("faction_mactan"):
+		var park_unit := park_node as Unit
+		if park_unit == null or park_unit.is_in_group("naval_units"):
+			continue
+		park_unit.stop()
+		park_unit.global_position = Vector2(
+			-160 + 48 * (park_index % 8), -480 + 40 * int(park_index / 8.0))
+		park_index += 1
 
 	var spain_count := get_tree().get_nodes_in_group("faction_spain").size()
 	EventBus.day_advanced.emit(5)
@@ -438,9 +459,13 @@ func _run() -> void:
 		"Karakoa Rigging: naval speed x1.15 (%.0f)" % galley.current_speed())
 
 	# Poison Arrows: next arrow applies 3 dps instead of 2.
+	# (Archer was parked in the north clearing — bring it into range.)
+	var archer_park := archer.global_position
+	archer.global_position = dummy.global_position + Vector2(150, 0)
 	archer.command_attack(dummy)
 	await _wait(2.5)
 	archer.stop()
+	archer.global_position = archer_park
 	_check(is_equal_approx(dummy.poison_dps, 3.0),
 		"Poison Arrows: venom at %.1f dps" % dummy.poison_dps)
 
@@ -471,11 +496,15 @@ func _run() -> void:
 	# --- Milestone 10: audio ---
 	_check(AudioManager._calm.playing and AudioManager._battle.playing,
 		"both music layers running")
-	await _wait(0.6)  # let a battle-detection tick run (Spaniards besiege the Kuta)
+	# Deterministic battle proximity: a Spaniard within earshot (<=400 px)
+	# of the parked army but outside its aggro radius (>260 px).
+	var noise_maker := UnitSpawner.spawn(SOLDADO, Vector2(526, -480), "spain", true)
+	await _wait(0.6)  # let a battle-detection tick run
 	_check(AudioManager.battle_mode, "battle music state triggered by nearby combat")
 	await _wait(2.2)
 	_check(AudioManager._battle.volume_db > AudioManager._calm.volume_db,
 		"crossfaded to battle layer")
+	noise_maker.take_damage(999999.0, null, true)
 	EventBus.tide_changed.emit("LOW")
 	_check(AudioManager.last_sfx == "tide", "tide shift audio cue")
 	SelectionManager.select_units([lapu])
@@ -540,6 +569,85 @@ func _run() -> void:
 	GameSettings.set_music_volume(previous_music)
 	_check(GameSettings.codex_unlocked.size() >= 6,
 		"codex unlocks persisted (%d)" % GameSettings.codex_unlocked.size())
+
+	# --- Milestone 13: combat QoL ---
+	# Auto-acquire: an idle unit engages a hostile that appears in range.
+	var sentry := UnitSpawner.spawn(MANDIRIGMA, Vector2(300, -440), "mactan", true)
+	var intruder := UnitSpawner.spawn(SOLDADO, Vector2(430, -440), "spain", true)
+	await _wait(0.9)  # fog update + aggro scan
+	_check(sentry.state == Unit.State.ATTACKING and sentry.attack_target == intruder,
+		"idle unit auto-acquires nearby enemy")
+	_check(intruder.attack_target == sentry, "enemy retaliates in kind")
+	intruder.take_damage(999999.0, null, true)
+	await _wait(0.2)
+
+	# Passive units are not auto-acquired (friars must be hunted deliberately).
+	var monk := UnitSpawner.spawn(FRAILE, Vector2(300, -360), "spain", true)
+	await _wait(0.9)
+	_check(sentry.state == Unit.State.IDLE, "passive friar is not auto-acquired")
+	_check(monk.attack_target == null, "passive friar never attacks")
+	monk.take_damage(999999.0, null, true)
+
+	# Retaliation against an attacker beyond aggro range.
+	var sniper := UnitSpawner.spawn(SOLDADO, Vector2(660, -440), "spain", true)
+	sentry.take_damage(2.0, sniper)
+	_check(sentry.attack_target == sniper, "damaged idle unit retaliates against attacker")
+	sniper.take_damage(999999.0, null, true)
+	await _wait(0.2)
+
+	# Attack-move: engage en route, then resume the sweep.
+	var blocker := UnitSpawner.spawn(SOLDADO, Vector2(480, -420), "spain", true)
+	blocker.health = 10.0
+	sentry.stop()
+	sentry.global_position = Vector2(300, -420)
+	# Distant destination so the sweep is still in progress at check time.
+	sentry.command_attack_move(Vector2(1000, -420))
+	await _wait(1.4)
+	_check(sentry.attack_target == blocker or not is_instance_valid(blocker),
+		"attack-move engages enemies on the way")
+	await _wait(2.6)
+	_check(not is_instance_valid(blocker) or blocker.is_dead(), "attack-move kill confirmed")
+	_check(sentry._attack_move_dest != Vector2.INF and sentry.state == Unit.State.MOVING,
+		"attack-move resumes toward its destination")
+	sentry.stop()
+
+	# Control groups.
+	SelectionManager.select_units([sentry])
+	SelectionManager.assign_control_group(3)
+	SelectionManager.clear_selection()
+	SelectionManager.recall_control_group(3)
+	_check(SelectionManager.selected_units.size() == 1
+		and SelectionManager.selected_units[0] == sentry, "control group assign/recall")
+
+	# Select-all-military + idle cycling.
+	SelectionManager.select_all_military()
+	_check(SelectionManager.selected_units.size() >= 10,
+		"Ctrl+A selects the army (%d units)" % SelectionManager.selected_units.size())
+	SelectionManager.clear_selection()
+	SelectionManager.cycle_idle_unit()
+	_check(SelectionManager.selected_units.size() == 1
+		and SelectionManager.selected_units[0].state == Unit.State.IDLE,
+		"Tab cycles to an idle unit")
+	SelectionManager.clear_selection()
+
+	# Rally point: trained unit marches from the gate to the flag.
+	var shrine_building := buildings.get_node("Shrine") as Building
+	shrine_building.set_rally_point(Vector2(320, -220))
+	_check(shrine_building.rally_point == Vector2(320, -220), "rally point set on building")
+	var rally_spawns: Array = []
+	var rally_watcher := func(unit: Node) -> void: rally_spawns.append(unit)
+	EventBus.unit_spawned.connect(rally_watcher)
+	_check(shrine_building.queue_unit(BABAYLAN), "queued unit for rally test")
+	shrine_building.queue[0]["remaining"] = 0.05
+	await _wait(0.3)
+	EventBus.unit_spawned.disconnect(rally_watcher)
+	_check(rally_spawns.size() == 1 and (rally_spawns[0] as Unit).state == Unit.State.MOVING,
+		"trained unit heads to the rally point")
+
+	# Health bars always-on setting.
+	GameSettings.set_health_bars_always(true)
+	_check(GameSettings.health_bars_always, "health bars always-on toggle")
+	GameSettings.set_health_bars_always(false)
 
 	# --- Milestone 7: victory & loss conditions ---
 	var results: Array = []

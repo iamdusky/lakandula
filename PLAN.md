@@ -520,15 +520,26 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
   and Cebuano voice lines (drafts included; need native-speaker verification).
 
 ## Milestone 13 — Combat QoL
-**Status:** 🔲 Not started  
+**Status:** ✅ Complete (2026-07-03)  
 **Goal:** The controls testers will expect from an RTS. Biggest known gap: units are passive unless ordered.
 
-- [ ] Auto-retaliation — idle units acquire attackers/enemies within an aggro radius (respect fog visibility)
-- [ ] Attack-move (A + RMB or A-click): move and engage anything hostile en route
-- [ ] Control groups — Ctrl+1..9 assign, 1..9 recall, double-tap centers camera
-- [ ] Rally points on production buildings (RMB with building selected)
-- [ ] Idle-worker/unit cycling key + select-all-military hotkey
-- [ ] Health bars always-on toggle
+> Implementation notes: aggro radius = min(sight, 260 px), scan every 0.4 s
+> (staggered per unit); auto-acquired targets have a 320 px leash back to the
+> guard position. `UnitData.passive` (Fraile, Babaylan, dummy) opts units out
+> of BOTH acquiring and being auto-acquired — friars must still be hunted
+> deliberately, preserving the conversion-interception mechanic. Fog-hidden
+> and grace-period-invulnerable enemies can't be acquired. Damaged idle units
+> retaliate against their attacker even beyond aggro range. Attack-move is F
+> (arms next click) or Ctrl/Cmd+RMB. The smoke test gained "stabilization"
+> blocks: parked units + flotilla, since idle armies now join any nearby
+> scripted fight.
+
+- [x] Auto-retaliation — idle units acquire attackers/enemies within an aggro radius (respects fog + passive flags + leash)
+- [x] Attack-move (F then click, or Ctrl/Cmd+RMB): move and engage anything hostile en route; resumes sweep after kills
+- [x] Control groups — Ctrl/Cmd+1..9 assign, 1..9 recall, double-tap centers camera
+- [x] Rally points on production buildings (RMB with building selected; flag drawn; trained units march there)
+- [x] Idle-unit cycling (Tab) + select-all-military (Ctrl/Cmd+A)
+- [x] Health bars always-on toggle (Settings; persisted)
 
 ## Milestone 14 — Difficulty & Replayability
 **Status:** 🔲 Not started  

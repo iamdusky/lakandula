@@ -26,10 +26,20 @@ var buff_speed := 1.0
 var buff_damage := 1.0
 var poison_dps := 0.0
 
+## Auto-combat (M13): idle units acquire enemies within AGGRO_RADIUS and
+## chase up to LEASH_RANGE from where they stood; attack-move sweeps.
+const AGGRO_RADIUS := 260.0
+const LEASH_RANGE := 320.0
+const AGGRO_SCAN_INTERVAL := 0.4
+
 var _attack_timer := 0.0
 var _ability_timer := 0.0
 var _poison_timer := 0.0
 var _stun_timer := 0.0
+var _auto_target := false
+var _guard_position := Vector2.INF
+var _attack_move_dest := Vector2.INF
+var _aggro_accumulator := 0.0
 var _aura_attack_speed := 1.0
 var _aura_damage := 1.0
 var _aura_timer := 0.0
@@ -47,6 +57,7 @@ func _ready() -> void:
 	add_to_group("units")
 	add_to_group("faction_" + faction)
 	_selection_ring.visible = false
+	_aggro_accumulator = randf() * AGGRO_SCAN_INTERVAL  # spread scans
 
 
 func _physics_process(delta: float) -> void:
@@ -61,6 +72,10 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		_animate(delta)
 		return
+	_aggro_accumulator += delta
+	if _aggro_accumulator >= AGGRO_SCAN_INTERVAL:
+		_aggro_accumulator = 0.0
+		_aggro_scan()
 	match state:
 		State.MOVING:
 			_process_moving()
@@ -75,6 +90,9 @@ func command_move(world_pos: Vector2) -> void:
 	if state == State.DEAD:
 		return
 	attack_target = null
+	_auto_target = false
+	_attack_move_dest = Vector2.INF
+	_guard_position = Vector2.INF
 	nav_agent.target_position = world_pos
 	state = State.MOVING
 
@@ -83,13 +101,32 @@ func command_attack(target: Node2D) -> void:
 	if state == State.DEAD or target == self:
 		return
 	attack_target = target
+	_auto_target = false
+	_attack_move_dest = Vector2.INF
+	_guard_position = Vector2.INF
 	state = State.ATTACKING
+
+
+## Move toward world_pos, engaging any hostile that comes within aggro
+## range on the way; resumes the sweep after each kill.
+func command_attack_move(world_pos: Vector2) -> void:
+	if state == State.DEAD:
+		return
+	attack_target = null
+	_auto_target = false
+	_guard_position = Vector2.INF
+	_attack_move_dest = world_pos
+	nav_agent.target_position = world_pos
+	state = State.MOVING
 
 
 func stop() -> void:
 	if state == State.DEAD:
 		return
 	attack_target = null
+	_auto_target = false
+	_attack_move_dest = Vector2.INF
+	_guard_position = Vector2.INF
 	velocity = Vector2.ZERO
 	state = State.IDLE
 
@@ -107,6 +144,11 @@ func take_damage(amount: float, source: Unit = null, ignore_armor := false) -> v
 	var final := amount if ignore_armor else maxf(amount - data.armor, 1.0)
 	_damage_health(final, source)
 	EventBus.combat_hit.emit(self)
+	# Retaliation: an idle unit turns on its attacker (even beyond aggro range).
+	if state == State.IDLE and not data.passive and source != null \
+			and is_instance_valid(source) and source.faction != faction \
+			and not source.invulnerable:
+		_acquire(source)
 
 
 func heal(amount: float) -> void:
@@ -208,7 +250,15 @@ func _process_moving() -> void:
 
 func _process_attacking() -> void:
 	if not is_instance_valid(attack_target) or attack_target.is_dead():
-		stop()
+		if _attack_move_dest != Vector2.INF:
+			command_attack_move(_attack_move_dest)  # resume the sweep
+		else:
+			stop()
+		return
+	# Auto-acquired targets have a leash — don't chase across the map.
+	if _auto_target and _guard_position != Vector2.INF \
+			and global_position.distance_to(_guard_position) > LEASH_RANGE:
+		command_move(_guard_position)
 		return
 	var distance := global_position.distance_to(attack_target.global_position) \
 		- _target_radius(attack_target)
@@ -222,6 +272,44 @@ func _process_attacking() -> void:
 			_attack_timer = data.attack_interval / _aura_attack_speed
 			_lunge = global_position.direction_to(attack_target.global_position) * 6.0
 			_perform_attack(attack_target)
+
+
+## Idle units and attack-movers look for hostiles to engage.
+## Grace-period ceasefire: invulnerable units (Spanish fleet during SAIL_IN)
+## don't open fire either.
+func _aggro_scan() -> void:
+	if data.passive or invulnerable or state == State.DEAD:
+		return
+	if state != State.IDLE \
+			and not (state == State.MOVING and _attack_move_dest != Vector2.INF):
+		return
+	var enemy := _nearest_hostile(minf(data.sight_range, AGGRO_RADIUS))
+	if enemy != null:
+		_acquire(enemy)
+
+
+func _acquire(target: Node2D) -> void:
+	if state == State.IDLE:
+		_guard_position = global_position
+	attack_target = target
+	_auto_target = true
+	state = State.ATTACKING
+
+
+## Nearest attackable enemy unit: not passive, not fog-hidden, not shielded.
+func _nearest_hostile(radius: float) -> Node2D:
+	var best: Unit = null
+	var best_distance := radius
+	for node in get_tree().get_nodes_in_group("units"):
+		var unit := node as Unit
+		if unit == null or unit.faction == faction or unit.state == State.DEAD \
+				or unit.data.passive or unit.invulnerable or not unit.visible:
+			continue
+		var distance := global_position.distance_to(unit.global_position)
+		if distance < best_distance:
+			best = unit
+			best_distance = distance
+	return best
 
 
 ## Default: melee hit. Ranged units override to spawn a projectile.

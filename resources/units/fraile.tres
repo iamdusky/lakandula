@@ -20,3 +20,4 @@ terrain_speed = {}
 terrain_damage = {}
 ability_name = ""
 ability_cooldown = 10.0
+passive = true

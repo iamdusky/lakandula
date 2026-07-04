@@ -13,6 +13,11 @@ var selected_building: Building = null
 var _dragging := false
 var _drag_start := Vector2.ZERO
 var _box: ColorRect
+var _attack_move_armed := false
+var _control_groups := {}
+var _idle_cycle_index := -1
+var _last_recall_group := 0
+var _last_recall_msec := 0
 
 
 func _ready() -> void:
@@ -28,6 +33,10 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("select"):
+		if _attack_move_armed:
+			_attack_move_armed = false
+			_issue_attack_move(_world_mouse())
+			return
 		_dragging = true
 		_drag_start = _screen_mouse()
 	elif event.is_action_released("select"):
@@ -40,13 +49,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_box_select()
 	elif event.is_action_pressed("command"):
-		_issue_command()
+		var mouse := event as InputEventMouseButton
+		if _attack_move_armed or (mouse != null and (mouse.ctrl_pressed or mouse.meta_pressed)):
+			_attack_move_armed = false
+			_issue_attack_move(_world_mouse())
+		else:
+			_issue_command()
+	elif event.is_action_pressed("attack_move"):
+		if not _live_selection().is_empty():
+			_attack_move_armed = true
+			EventBus.hud_notification.emit("Attack-move: click a destination.")
+	elif event.is_action_pressed("cycle_idle"):
+		cycle_idle_unit()
 	elif event.is_action_pressed("ability"):
 		for unit in _live_selection():
 			unit.use_ability()
 	elif event.is_action_pressed("stop"):
+		_attack_move_armed = false
 		for unit in _live_selection():
 			unit.stop()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		_handle_hotkeys(event)
+
+
+func _handle_hotkeys(event: InputEventKey) -> void:
+	var with_modifier: bool = event.ctrl_pressed or event.meta_pressed
+	if event.keycode >= KEY_1 and event.keycode <= KEY_9:
+		var group_index: int = event.keycode - KEY_1 + 1
+		if with_modifier:
+			assign_control_group(group_index)
+		else:
+			recall_control_group(group_index)
+	elif event.keycode == KEY_A and with_modifier:
+		select_all_military()
 
 
 func _process(_delta: float) -> void:
@@ -126,11 +161,71 @@ func _box_select() -> void:
 	select_units(picked)
 
 
+# --- Control groups & army selection ---
+
+func assign_control_group(index: int) -> void:
+	_control_groups[index] = _live_selection().duplicate()
+
+
+func recall_control_group(index: int) -> void:
+	var live: Array = _control_groups.get(index, []).filter(
+		func(unit: Unit) -> bool:
+			return is_instance_valid(unit) and unit.state != Unit.State.DEAD)
+	_control_groups[index] = live
+	if live.is_empty():
+		return
+	select_units(live)
+	# Double-tap recenters the camera on the group.
+	var now := Time.get_ticks_msec()
+	if index == _last_recall_group and now - _last_recall_msec < 400:
+		_pan_camera_to_selection()
+	_last_recall_group = index
+	_last_recall_msec = now
+
+
+func select_all_military() -> void:
+	var army: Array = []
+	for node in get_tree().get_nodes_in_group("faction_mactan"):
+		var unit := node as Unit
+		if unit != null and unit.state != Unit.State.DEAD:
+			army.append(unit)
+	select_units(army)
+
+
+func cycle_idle_unit() -> void:
+	var idle: Array = []
+	for node in get_tree().get_nodes_in_group("faction_mactan"):
+		var unit := node as Unit
+		if unit != null and unit.state == Unit.State.IDLE:
+			idle.append(unit)
+	if idle.is_empty():
+		return
+	_idle_cycle_index = (_idle_cycle_index + 1) % idle.size()
+	select_units([idle[_idle_cycle_index]])
+	_pan_camera_to_selection()
+
+
+func _pan_camera_to_selection() -> void:
+	if selected_units.is_empty():
+		return
+	var centroid := Vector2.ZERO
+	for unit in selected_units:
+		centroid += unit.global_position
+	centroid /= selected_units.size()
+	var camera := get_viewport().get_camera_2d()
+	if camera != null and camera.has_method("pan_to"):
+		camera.pan_to(centroid)
+
+
 # --- Commands ---
 
 func _issue_command() -> void:
 	var units := _live_selection()
 	if units.is_empty():
+		# A selected production building takes RMB as its rally point.
+		if selected_building != null and is_instance_valid(selected_building) \
+				and selected_building.faction == "mactan":
+			selected_building.set_rally_point(_world_mouse())
 		return
 	var world := _world_mouse()
 	var enemy := _enemy_at(world)
@@ -143,6 +238,16 @@ func _issue_command() -> void:
 		for i in units.size():
 			units[i].command_move(world + offsets[i])
 		EventBus.command_issued.emit("move", world)
+
+
+func _issue_attack_move(world: Vector2) -> void:
+	var units := _live_selection()
+	if units.is_empty():
+		return
+	var offsets := _formation_offsets(units.size())
+	for i in units.size():
+		units[i].command_attack_move(world + offsets[i])
+	EventBus.command_issued.emit("attack_move", world)
 
 
 func _enemy_at(world: Vector2) -> Node2D:

@@ -80,7 +80,7 @@ offset_left = 16.0
 offset_top = -28.0
 offset_right = 620.0
 offset_bottom = -8.0
-text = "LMB select (units & buildings) · RMB command · Q ability · Space stop · T diplomacy · R research · C codex"
+text = "LMB select · RMB command · F/Ctrl-RMB attack-move · Ctrl+1-9 groups · Tab idle · Ctrl+A army · Q ability · Space stop · T/R/C panels"
 theme_override_font_sizes/font_size = 15
 
 [node name="DiplomacyPanel" type="PanelContainer" parent="."]
