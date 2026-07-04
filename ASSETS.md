@@ -105,7 +105,56 @@ Mactan/Spanish acknowledgment grunts (2 each).
 
 ## Delivery
 
-PNG (sprites, sheets left-to-right) / OGG Vorbis 44.1 kHz (audio). Drop-in
-paths match `assets/gen/*` filenames — see that directory for the complete
-current manifest. License: work-for-hire or CC-BY with attribution in the
-codex screen — discuss before starting.
+PNG (sprites) / OGG Vorbis 44.1 kHz (audio). Drop-in paths match
+`assets/gen/*` filenames — see that directory for the complete current
+manifest. License: work-for-hire or CC-BY with attribution in the codex
+screen — discuss before starting.
+
+## Sprite sheet delivery format (for the artist — please read)
+
+Presentation sheets (labels, showcase renders, eyeballed spacing) are great
+for review but can't be imported. Engine-ready files follow these rules:
+
+1. **No text labels, no showcase figure** in the data file. Deliver the
+   large hero rendering separately — we'll use it for the portrait and
+   menu art.
+2. **Uniform cells.** Every frame sits in an identical W×H cell, sized to
+   the widest frame of the whole set (usually the lying-down death frame).
+3. **Fixed registration.** Feet on the same baseline Y in every cell;
+   character centered on the same X. This is what prevents jitter between
+   frames — the single most important rule here.
+4. **Facing RIGHT.** The engine mirrors for leftward movement.
+5. **True alpha transparency** (no baked checkerboard, no matte color).
+6. **Two accepted layouts:**
+   - **Option A (preferred): one horizontal strip per animation**, frames
+     left-to-right: `<unit>_idle.png`, `<unit>_walk.png`, `<unit>_attack.png`,
+     `<unit>_charge.png` (heroes only), `<unit>_death.png`.
+   - **Option B: one grid sheet per unit** — fixed row order, unused cells
+     fully transparent. See [docs/sprite_sheet_grid.svg](docs/sprite_sheet_grid.svg)
+     for the rendered diagram, or the ASCII version below.
+7. **Tell us the numbers**: cell size and baseline offset, in the filename
+   or a note — e.g. `lapu_lapu_sheet_96x96_base14.png`.
+8. **Target scale**: regular units ~40–48 px tall, heroes up to ~64 px
+   (terrain grid is 64 px). Pixel art scales cleanly only by integers, so
+   drawing at final size is strongly preferred.
+
+```text
+         col 0     col 1     col 2     col 3     col 4     col 5
+       ┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+IDLE   │ idle 0  │ idle 1  │  empty  │  empty  │  empty  │  empty  │
+       ├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+WALK   │ walk 0  │ walk 1  │ walk 2  │ walk 3  │  empty  │  empty  │
+       ├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+ATTACK │ atk 0   │ atk 1   │ atk 2   │ atk 3   │ atk 4   │  empty  │
+       ├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+CHARGE │ chg 0   │ chg 1   │ chg 2   │ chg 3   │  empty  │  empty  │  ← heroes only;
+       ├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤    omit this row
+DEATH  │ dth 0   │ dth 1   │ dth 2   │ dth 3   │ dth 4   │ dth 5   │    for other units
+       └─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+        · every cell exactly W×H          · feet on the same baseline
+        · frames left → right             · facing right
+        · unused cells transparent        · row order never changes
+```
+
+Frame counts per row may vary by unit (see the unit table above) — the row
+ORDER never does: idle, walk, attack, [charge], death.
