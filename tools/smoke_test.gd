@@ -565,6 +565,9 @@ func _run() -> void:
 		_check(packed != null and packed.can_instantiate(), "scene loads: " + scene_path)
 	_check(SceneFlow._rect != null, "scene fader ready")
 	_check(MapData.build_preview_texture() != null, "briefing map preview builds")
+	_check(MapData.terrain_color("land") != Color.BLACK
+		and MapData.terrain_color("land") != MapData.terrain_color("open_water"),
+		"terrain palette sampled from atlas art")
 
 	var previous_music := GameSettings.music_volume
 	GameSettings.set_music_volume(0.5)
