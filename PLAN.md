@@ -577,10 +577,18 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 - [ ] Attribution/credits in codex screen
 
 ## Milestone 16 — Release Engineering
-**Status:** 🔲 Not started (CI spec filed as [issue #1](https://github.com/iamdusky/lakandula/issues/1))  
+**Status:** 🟡 In progress — CI/CD done (2026-07-06); public-release items pending  
 **Goal:** Public, repeatable releases.
 
-- [ ] GitHub Actions: smoke test on push; tag-triggered 3-platform release builds
+> CI (.github/workflows/ci.yml): cached headless Godot 4.6.1 runs the
+> 194-check smoke suite on every push/PR to main. Release
+> (.github/workflows/release.yml): on v* tags — cached export templates,
+> smoke gate, 3-platform export, zips with TESTING.md, gh release with
+> generated notes; workflow_dispatch = dry run uploading workflow artifacts.
+> Both validated green on real runners (dry run produced all 3 builds).
+> Release flow now: bump export_presets version → tag v* → push tag.
+
+- [x] GitHub Actions: smoke test on push/PR; tag-triggered 3-platform release builds (validated; issue #1 closed)
 - [ ] Repo public + itch.io page
 - [ ] Code signing / notarization decision (macOS Gatekeeper, Windows SmartScreen)
 - [ ] Versioning & changelog discipline (CHANGELOG.md)
