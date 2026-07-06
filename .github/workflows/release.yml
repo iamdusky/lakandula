@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}  # dry run: builds + uploads workflow artifacts, no release
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.6.1"
+
+jobs:
+  build-and-release:
+    name: Build all platforms & publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-bin
+          curl -sSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot-bin
+          mv ~/godot-bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot-bin/godot
+
+      - name: Cache export templates (~1.2 GB)
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ env.GODOT_VERSION }}
+
+      - name: Download export templates
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q /tmp/templates.tpz -d /tmp/tpl
+          mv /tmp/tpl/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Import assets
+        run: ~/godot-bin/godot --headless --path . --import || true
+
+      - name: Smoke test gate
+        run: ~/godot-bin/godot --headless --path . -- --smoke-test
+
+      - name: Export all platforms
+        run: |
+          mkdir -p dist/windows dist/linux
+          ~/godot-bin/godot --headless --path . --export-release "macOS" dist/lakandula-macos.zip
+          ~/godot-bin/godot --headless --path . --export-release "Windows Desktop" dist/windows/LAKANDULA.exe
+          ~/godot-bin/godot --headless --path . --export-release "Linux" dist/linux/lakandula.x86_64
+          test -s dist/lakandula-macos.zip && test -s dist/windows/LAKANDULA.exe && test -s dist/linux/lakandula.x86_64
+
+      - name: Package zips (with tester guide)
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then TAG="dryrun"; fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          zip -q -j dist/lakandula-macos.zip TESTING.md
+          mv dist/lakandula-macos.zip "dist/lakandula-$TAG-macos.zip"
+          cp TESTING.md dist/windows/
+          (cd dist/windows && zip -q -r "../lakandula-$TAG-windows.zip" LAKANDULA.exe TESTING.md)
+          cp TESTING.md dist/linux/
+          (cd dist/linux && zip -q -r "../lakandula-$TAG-linux.zip" lakandula.x86_64 TESTING.md)
+          ls -lh dist/*.zip
+
+      - name: Create GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/lakandula-$TAG-macos.zip" \
+            "dist/lakandula-$TAG-windows.zip" \
+            "dist/lakandula-$TAG-linux.zip" \
+            --title "LAKANDULA $GITHUB_REF_NAME" \
+            --generate-notes
+
+      - name: Upload artifacts (dry runs only)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lakandula-dryrun-builds
+          path: dist/*.zip
+          retention-days: 7
