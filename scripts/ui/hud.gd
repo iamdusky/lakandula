@@ -12,17 +12,20 @@ extends CanvasLayer
 @onready var _tide_label: Label = $TideBox/TideLabel
 @onready var _tide_swatch: ColorRect = $TideBox/TideSwatch
 
-const TIDE_COLORS := {
-	"LOW": Color(0.85, 0.74, 0.48),
-	"RISING": Color(0.35, 0.62, 0.66),
-	"HIGH": Color(0.16, 0.38, 0.58),
-	"FALLING": Color(0.30, 0.52, 0.58),
-}
+## Filled in _ready from the terrain atlas so the swatch matches the art:
+## LOW = exposed sand, HIGH = deep water, RISING/FALLING = shallows.
+var _tide_colors := {}
 
 var _note_tween: Tween
 
 
 func _ready() -> void:
+	_tide_colors = {
+		"LOW": MapData.terrain_color("beach"),
+		"RISING": MapData.terrain_color("shallows"),
+		"HIGH": MapData.terrain_color("open_water"),
+		"FALLING": MapData.terrain_color("shallows").darkened(0.15),
+	}
 	EventBus.resources_changed.connect(_on_resources_changed)
 	EventBus.day_advanced.connect(_on_day_advanced)
 	EventBus.hud_notification.connect(_on_notification)
@@ -37,7 +40,7 @@ func _process(_delta: float) -> void:
 	var seconds := maxi(0, int(TideManager.time_left()))
 	_tide_label.text = "Tide: %s — turns in %d:%02d" % [
 		TideManager.phase_name(), seconds / 60, seconds % 60]
-	_tide_swatch.color = TIDE_COLORS.get(TideManager.phase_name(), Color.WHITE)
+	_tide_swatch.color = _tide_colors.get(TideManager.phase_name(), Color.WHITE)
 
 
 func _on_resources_changed(faction: String, res: Dictionary) -> void:

@@ -19,6 +19,8 @@ const LEGEND := {
 	"r": "river",
 }
 
+## Fallback only — the real palette is sampled from the terrain atlas so the
+## minimap/preview/tide-swatch always match the shipped art (issue #2).
 const TERRAIN_COLORS := {
 	"land": Color(0.33, 0.55, 0.29),
 	"jungle": Color(0.16, 0.35, 0.18),
@@ -28,6 +30,38 @@ const TERRAIN_COLORS := {
 	"shallows": Color(0.25, 0.51, 0.60),
 }
 
+## Column order in assets/gen/terrain_atlas.png (matches MapBuilder.ATLAS_X).
+const ATLAS_ORDER := ["land", "jungle", "beach", "river", "open_water", "shallows"]
+const ATLAS_TILE := 64
+
+static var _sampled_colors := {}
+
+
+## Average tile color, sampled once from the atlas art.
+static func terrain_color(terrain: String) -> Color:
+	if _sampled_colors.is_empty():
+		_sample_atlas_colors()
+	return _sampled_colors.get(terrain, TERRAIN_COLORS.get(terrain, Color.BLACK))
+
+
+static func _sample_atlas_colors() -> void:
+	var texture := load("res://assets/gen/terrain_atlas.png") as Texture2D
+	if texture == null:
+		_sampled_colors = TERRAIN_COLORS.duplicate()
+		return
+	var image := texture.get_image()
+	if image.is_compressed():
+		image.decompress()
+	for i in ATLAS_ORDER.size():
+		var sum := Vector3.ZERO
+		var count := 0
+		for y in range(0, ATLAS_TILE, 2):
+			for x in range(0, ATLAS_TILE, 2):
+				var pixel := image.get_pixel(i * ATLAS_TILE + x, y)
+				sum += Vector3(pixel.r, pixel.g, pixel.b)
+				count += 1
+		_sampled_colors[ATLAS_ORDER[i]] = Color(sum.x / count, sum.y / count, sum.z / count)
+
 
 ## One pixel per cell — used by the minimap and the briefing map preview.
 static func build_preview_texture() -> ImageTexture:
@@ -36,7 +70,7 @@ static func build_preview_texture() -> ImageTexture:
 		var row := ROWS[y]
 		for x in row.length():
 			var terrain: String = LEGEND.get(row[x], "land")
-			image.set_pixel(x, y, TERRAIN_COLORS.get(terrain, Color.BLACK))
+			image.set_pixel(x, y, terrain_color(terrain))
 	return ImageTexture.create_from_image(image)
 
 const ROWS: Array[String] = [

@@ -12,9 +12,14 @@ Warcraft-style single-player RTS in **Godot 4.6** (GDScript). Pre-colonial Phili
   `/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --quit-after 10`
 - Smoke test (movement, combat, selection, economy — exits 0/1, takes ~10 s):
   `/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --smoke-test`
-- Regenerate placeholder textures (`assets/gen/`):
-  `/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/gen_assets.gd`
-- Regenerate placeholder audio (`assets/gen/audio/`, synthesized WAVs):
+- ⚠ Textures in `assets/gen/` are AI-generated art (WC2 pixel-art style), NOT
+  regenerable. The old procedural generator (`tools/gen_assets.gd`) is retired
+  and deleted — do not recreate or run it; it would clobber the art. It remains
+  in git history (pre-`ai-generated-assets` branch) if the placeholder pipeline
+  is ever needed again. New/changed sprites must keep the same filenames and
+  sheet layouts (humanoids: 4-frame horizontal strips; see ASSETS.md).
+- Regenerate placeholder audio (`assets/gen/audio/`, synthesized WAVs — audio
+  IS still generated):
   `/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/gen_audio.gd`
 - Main scene: `scenes/ui/main_menu.tscn` (menu → briefing → `scenes/maps/main_map.tscn`).
   With `--smoke-test` / `--screenshot` user args the menu redirects straight to
@@ -30,8 +35,8 @@ Warcraft-style single-player RTS in **Godot 4.6** (GDScript). Pre-colonial Phili
 - `scripts/map/fog_of_war.gd` — fog overlay; hides enemy units (`unit.visible`), `is_world_visible()`; lifted by `EventBus.ritual_reveal`
 - `scenes/maps/`, `scenes/units/`, `scenes/buildings/`, `scenes/projectiles/`, `scenes/ui/` — scenes
 - `resources/units/` — `.tres` stat resources
-- `assets/gen/` — generated placeholder textures (rebuild via `tools/gen_assets.gd`)
-- `tools/` — asset generator, smoke test
+- `assets/gen/` — AI-generated textures (fixed filenames/layouts; not regenerable) + synthesized audio
+- `tools/` — audio generator, smoke test, screenshot capture
 
 ## Map & navigation
 
