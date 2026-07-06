@@ -1,9 +1,10 @@
-# LAKANDULA — Tester Guide (v0.3.0)
+# LAKANDULA — Tester Guide (v0.4.0)
 
 A Warcraft-style RTS set at the Battle of Mactan, April 1521. You lead
-Lapu-Lapu's coalition against Magellan's expedition. **Art and audio are
-generated placeholders** (pixel-art sprites, synthesized kulintang music) —
-you're testing gameplay, balance, and stability, not final visuals.
+Lapu-Lapu's coalition against Magellan's expedition. **This build debuts the
+AI-generated art pass** (WC2-style pixel art across all units, buildings,
+and terrain); audio remains synthesized placeholder. Visual feedback is
+now welcome alongside gameplay, balance, and stability.
 
 ## Running it
 
@@ -28,6 +29,11 @@ you're testing gameplay, balance, and stability, not final visuals.
 | Q | Selected unit's ability · **Space** stop |
 | T / R / C | Diplomacy · Research · Codex |
 | **F5 / F9** | Save / load mid-battle |
+
+## New since v0.3.0
+
+- **All-new art** — every unit, building, ship, portrait, and terrain tile
+  replaced with AI-generated pixel art. Tell us what reads badly!
 
 ## New since v0.2.0
 
