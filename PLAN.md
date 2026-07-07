@@ -593,15 +593,87 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 - [ ] Code signing / notarization decision (macOS Gatekeeper, Windows SmartScreen)
 - [ ] Versioning & changelog discipline (CHANGELOG.md)
 
+---
+
+## Milestone 17 — Campaign Objectives (game length restructure)
+**Status:** 🔲 Not started — planned 2026-07-07  
+**Goal:** Fix the core pacing problem: a skilled player rushes Magellan and
+ends a ~30 min game in ~8 min, skipping the economy, tech, and diplomacy
+layers entirely. Make killing Magellan a **turning point**, not the credits,
+and gate the ending behind sequenced objectives — while preserving today's
+fast game as an explicit "Skirmish" mode.
+
+> **Design decisions (locked 2026-07-07):**
+> - Magellan's death = **turning point**, not instant win. It ends Spain's
+>   organized campaign and triggers a leaderless **Reprisal** phase.
+> - **Two modes**, chosen at the briefing (reuse the difficulty-dropdown
+>   pattern): **Skirmish** = current parallel-win-condition game (fast, good
+>   for testers/quick sessions, and the default the smoke test pins);
+>   **Campaign** = the full staged arc below.
+> - No new art required — pure GDScript over existing systems. NOT blocked
+>   on M15 asset delivery.
+
+### Game-mode framework
+- [ ] `GameSettings.game_mode` ("skirmish" | "campaign"), persisted; briefing-screen dropdown next to Difficulty
+- [ ] Smoke test pins "skirmish" at start (keeps the existing 194 checks valid unchanged)
+- [ ] `VictoryManager` branches on mode: skirmish = today's parallel conditions; campaign = the staged `ObjectiveTracker` below
+
+### Objective system (campaign mode)
+- [ ] `ObjectiveTracker` (autoload or VictoryManager-owned) — ordered phases, each with a completion predicate + optional failure predicate; emits `EventBus.objective_changed(phase, text, state)`
+- [ ] Phases (draft — tune in playtest):
+  1. **Weather the Landing** — survive to the assault (day 15) with the Kuta standing
+  2. **Break the Assault** — repel the day-15 combined-arms push (Spanish attackers on the island drop below a threshold, or the assault-wave timer elapses with Kuta intact)
+  3. **Fell the Conquistador** — kill Magellan (the old instant-win, now a mid-campaign beat)
+  4. **Endure the Reprisal** — survive the leaderless fury phase (see AI below)
+  5. **Expel Spain** — final win: force withdrawal via powder starvation, liberation, or monsoon
+- [ ] Loss conditions persist across all phases (Kuta razed / Lapu-Lapu dead)
+- [ ] HUD **objectives tracker** panel — current phase highlighted, completed ticked; toggle or always-on corner list
+
+### Reprisal AI phase
+- [ ] New `SpanishAI` state **REPRISAL**, entered on `hero_died(Magellan)` in campaign mode (skirmish still instant-wins)
+- [ ] Behavior: abandon conversion, all remaining units attack-move the Kuta; a final reinforcement landing (scaled by difficulty); powder resupply disabled (they're spending their last)
+- [ ] Ends when Spanish forces on the island are eliminated OR a survival timer elapses → advances objective to "Expel Spain"
+- [ ] Notification beat: "Magellan is dead — the Spanish fight with nothing left to lose."
+
+### Verification
+- [ ] Smoke test: skirmish path unchanged (existing checks)
+- [ ] Smoke test: campaign path — drive phases 1→5, assert `objective_changed` fires in order, Magellan death advances (not ends), Reprisal state entered, final expel wins
+- [ ] Historical codex beat unlocked on entering Reprisal (Humabon's betrayal of the survivors)
+
+---
+
+## Milestone 18 — Attrition & Persistent Threat (campaign depth)
+**Status:** 🔲 Not started — planned 2026-07-07  
+**Goal:** Make the economy, tech tree, and reclamation *necessary* rather than
+optional during the longer campaign, so the back half is an active contest
+instead of a mop-up. Layers onto M17's campaign mode.
+
+> Depends on M17. Skirmish mode is unaffected. Some items promote existing
+> backlog entries (garrison, weather) into the campaign loop.
+
+### Reclamation loop
+- [ ] Spain keeps sending friars through CONVERT/ASSAULT (already partly true) — converted villages become a standing objective to reclaim, not a one-time loss
+- [ ] Player reclaims a Spanish-allied village by clearing nearby Spanish units + a Babaylan/hold action (mirror of the friar conversion, inverted)
+- [ ] Optional sub-goal in the objectives tracker: "Liberate N converted barangays"
+
+### Escalating siege
+- [ ] Post-day-15 waves grow over time (reinforcement galleons arrive from the west; second beachhead can open) — extends `SpanishAI` wave logic + difficulty scaling
+- [ ] Reinforcement fleet events telegraphed (minimap ping + notification) so the player can contest landings
+
+### Attrition economy
+- [ ] Unit losses matter: soft unit cap (housing/upkeep) so deathballs can't be trivially rebuilt; rebuilding costs real economy time
+- [ ] Consider Honor/Rice sinks that reward the tech tree mid-campaign
+
+### Promote from backlog (fold into campaign)
+- [ ] Garrison mechanic — units inside the Kuta fire from the walls (matters in a sustained siege)
+- [ ] Weather — rain reduces arquebus range (ties to the monsoon fantasy; a reprisal-phase storm)
+
 ## Backlog / Future
 
 - [ ] Second map — Battle of Maynila, 1571 (Rajah Sulayman vs Legazpi)
-- [ ] Skirmish mode — both factions playable vs AI
 - [ ] Multiplayer — 1v1 via Steam
-- [ ] Morale system — units rout when hero dies or outnumbered 3:1
-- [ ] Weather system — rain reduces arquebus range
-- [ ] Garrison mechanic — units inside Kuta fire from walls
 - [ ] Enrique de Malacca campaign — play as the interpreter navigating both sides
+- [ ] (Morale — done in M14; Skirmish mode — folded into M17; Garrison/Weather — folded into M18)
 
 ---
 
