@@ -93,5 +93,12 @@ a datu who said no. Codex entries in-game carry the sourced history.
 
 ## License
 
-Not yet decided — all rights reserved for now. Contact
-[@iamdusky](https://github.com/iamdusky) before reusing code or assets.
+Open source, split by what fits:
+
+- **Code** — [MIT](LICENSE). Use it, learn from it, ship with it.
+- **Content** (art, audio, written game text) — [CC BY 4.0](LICENSE-ASSETS),
+  with a provenance note: the current art is AI-generated and hand-curated.
+
+One request no license enforces: if you fork and ship something
+substantially different, please give it its own name — *LAKANDULA* refers
+to this project.

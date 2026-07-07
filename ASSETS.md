@@ -107,8 +107,10 @@ Mactan/Spanish acknowledgment grunts (2 each).
 
 PNG (sprites) / OGG Vorbis 44.1 kHz (audio). Drop-in paths match
 `assets/gen/*` filenames — see that directory for the complete current
-manifest. License: work-for-hire or CC-BY with attribution in the codex
-screen — discuss before starting.
+manifest. License: the project ships content under CC BY 4.0 (see
+LICENSE-ASSETS), so commissioned work must be either CC BY 4.0 or
+work-for-hire — settle this before starting. Contributors are credited in
+the game's codex/credits screen.
 
 ## Sprite sheet delivery format (for the artist — please read)
 

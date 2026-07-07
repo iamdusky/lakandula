@@ -1,0 +1,36 @@
+# LAKANDULA content license — CC BY 4.0
+
+The game content of LAKANDULA is licensed under the Creative Commons
+Attribution 4.0 International license (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Copyright (c) 2026 iamdusky (pseudonymous)
+
+## Scope
+
+- `assets/gen/**` — all textures, sprites, and synthesized audio
+- `docs/**` — documentation images and diagrams
+- Written game text wherever it appears in the source tree (the historical
+  codex entries, mission briefing, unit/tech descriptions, and the victory/
+  defeat texts embedded in scripts)
+
+Attribution: credit "iamdusky — LAKANDULA
+(https://github.com/iamdusky/lakandula)".
+
+## Provenance notice (AI-generated content)
+
+The textures and sprites in `assets/gen/` were produced with AI image
+generation and subsequently curated, iterated, and integrated by hand. The
+audio in `assets/gen/audio/` is procedurally synthesized. Under some
+copyright regimes (including current US Copyright Office guidance),
+purely AI-generated images may not be eligible for copyright protection;
+the CC BY 4.0 grant above applies to the extent such protection exists,
+and reflects the terms under which we intend this content to be reused
+either way.
+
+## Future commissioned content
+
+Commissioned assets (recorded music, voice lines, hand-made art) will be
+contributed under this same CC BY 4.0 license or as work-for-hire, per the
+commissioning terms in ASSETS.md, and credited individually in the game's
+codex/credits screen.
