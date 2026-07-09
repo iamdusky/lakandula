@@ -668,6 +668,70 @@ instead of a mop-up. Layers onto M17's campaign mode.
 - [ ] Garrison mechanic — units inside the Kuta fire from the walls (matters in a sustained siege)
 - [ ] Weather — rain reduces arquebus range (ties to the monsoon fantasy; a reprisal-phase storm)
 
+---
+
+## Milestone 19 — Base Building & Placement
+**Status:** 🔲 Not started — planned 2026-07-07  
+**Goal:** Buildings are currently pre-placed in `main_map.tscn` at fixed
+spots, so base layout is never a decision. Let the player place their own
+structures — a setup phase at game start and/or ongoing construction — so
+positioning (chokepoints, coverage of villages, defense of the Kuta) becomes
+strategic.
+
+> **Key architectural constraint:** buildings aren't purely visual — the land
+> navmesh is *carved* from their collision-rect footprints in a single
+> `MapBuilder.build()` pass at map load (see `_carve_footprints`, called once
+> from `main_map.gd`). Free placement therefore requires **re-carving the
+> land navmesh at runtime** whenever a building is added or destroyed, not
+> just spawning a sprite. This is the core of the work; the placement UI is
+> the easy part.
+
+### Runtime navmesh re-carve (foundation)
+- [ ] Refactor `MapBuilder` so footprint carving can run on demand, not only at build: keep the base land-cell set, re-subtract *current* building footprints, rebuild `nav_land.navigation_polygon`
+- [ ] `EventBus.buildings_changed` (or building placed/destroyed signals) triggers a re-carve; debounce so a burst of placements rebuilds once
+- [ ] Verify pathing updates: a unit mid-route re-paths around a newly placed building; a razed building reopens its ground
+- [ ] Decide performance budget — re-carve is O(cells × buildings); fine at current scale, but confirm no hitch on placement
+
+### Placement mode & validation
+- [ ] `BuildManager` (or SelectionManager mode) — enter placement, show a ghost/preview sprite following the cursor, LMB to confirm, RMB/Esc to cancel
+- [ ] Validity rules: land terrain only (query TerrainManager), no overlap with existing footprints or units, inside map bounds, (optional) within build radius of the Kuta or an allied village
+- [ ] Ghost tints green/red for valid/invalid; snap to the 64px cell grid (matches the navmesh cell size)
+- [ ] Pay cost on confirm via `ResourceManager.spend()`; buildings get costs (they have none today — add to a Building stat or a build catalog)
+
+### When can you build?
+- [ ] **Setup phase** (recommended pairing with M17 Campaign): a pre-day-1 placement window with a starting build allowance — position your base before Spain arrives. Skirmish could keep a fixed default or offer a quick setup.
+- [ ] **Ongoing construction** (optional / later): build new structures mid-game from gathered resources; enables expansion, forward bases, replacing razed buildings
+- [ ] Build menu UI — pick a structure type, see cost, enter placement
+
+### Data & save/load
+- [ ] Move the fixed `Buildings` children out of `main_map.tscn` into a placement flow (or keep a minimal default set + player additions)
+- [ ] `SaveGame` must serialize placed-building positions/types/health (currently they're scene-authored, so save/load assumes fixed layout — verify and extend)
+
+### Verification
+- [ ] Smoke test: place a building → navmesh re-carves → a unit paths around it; raze it → ground reopens
+- [ ] Smoke test: placement validity (reject water, overlap, out-of-bounds); cost charged on confirm
+- [ ] Save/load round-trips a custom base layout
+
+---
+
+## Bug — converted village can be cheaply re-flipped
+**Status:** 🔲 Not started — logged 2026-07-07 (small, standalone)  
+**Symptom:** After a Spanish friar converts a neutral village, the player can
+give one gift and instantly flip it back to Mactan. Not intended — a
+converted barangay should be sticky.
+
+> **Root cause (confirmed in code):** `DiplomacyManager._maybe_ally_village`
+> flips a village to whoever reaches `VILLAGE_ALLY_THRESHOLD` (2) tokens
+> *without checking current alignment*, and `add_token` never clears tokens
+> when a village changes hands. So the player's 2 tokens persist through a
+> Spanish conversion, and a single fresh gift re-crosses the threshold and
+> re-flips it — cheap and instant.
+
+- [ ] A village already aligned (to either faction) resists flipping: require more tokens to *contest* an owned village than to win a neutral one (e.g. neutral = 2, contested = 4–5), OR make Spanish-converted villages unwinnable by gift and reclaimable only by force (ties into M18's reclamation loop — pick one direction)
+- [ ] Clear/decay the losing faction's tokens on a village when it changes alignment, so old investment doesn't linger
+- [ ] Notification + codex framing when a contested flip succeeds ("the datu returns to the fold")
+- [ ] Decide interaction with M18: is gift-reclamation allowed at all in campaign, or is force the only way back? (Design call — flag for playtest)
+
 ## Backlog / Future
 
 - [ ] Second map — Battle of Maynila, 1571 (Rajah Sulayman vs Legazpi)
