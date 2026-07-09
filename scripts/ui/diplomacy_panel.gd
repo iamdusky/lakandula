@@ -99,8 +99,14 @@ func _refresh() -> void:
 			DatuVillage.Alignment.ALLIED_SPAIN:
 				align_text = "Spain"
 		var label: Label = _village_rows[datu_name]["label"]
-		label.text = "%s — %s — Utang %d" % [
-			datu_name, align_text, DiplomacyManager.get_tokens(datu_name, FACTION)]
+		# Show the flip target so contested (converted) villages read as the
+		# steeper investment they are: neutral 2, Spanish-held 5.
+		var tokens := DiplomacyManager.get_tokens(datu_name, FACTION)
+		var required := DiplomacyManager.village_flip_threshold(datu_name, FACTION)
+		if required > 0:
+			label.text = "%s — %s — Utang %d/%d" % [datu_name, align_text, tokens, required]
+		else:
+			label.text = "%s — %s — Utang %d" % [datu_name, align_text, tokens]
 
 
 func _make_row_label() -> Label:

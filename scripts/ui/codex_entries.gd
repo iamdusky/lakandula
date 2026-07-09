@@ -21,4 +21,8 @@ const ENTRIES := {
 		"April 27, 1521. Some 49 Spaniards faced perhaps 1,500 Mactan warriors. Magellan burned houses to cow the defenders; instead they pressed the attack at the water's edge, cut him down, and broke the assault."],
 	"utang": ["Utang na Loob",
 		"A debt of the inner self. Gifts and obligations bound datus, freemen, and allies in webs of reciprocity no conquistador ledger could record — and no gold could repay."],
+	"contested_faith": ["The Contested Faith",
+		"Baptism at a friar's hand did not erase utang na loob. A datu who took the cross under Spanish guns could still be won back — but a twice-given word carried a far steeper price than the first."],
+	"reprisal": ["The Feast of Cebu",
+		"Four days after Mactan, Humabon invited the expedition's officers to a banquet of reconciliation. More than two dozen never rose from the table. The survivors cut their cables and fled — whatever Spain's alliance had been, it died with Magellan."],
 }

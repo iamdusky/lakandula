@@ -5,6 +5,7 @@ extends ColorRect
 
 const RESULTS := {
 	"magellan_killed": ["VICTORY", "April 27, 1521. In the shallows of Mactan, Ferdinand Magellan falls — struck down at the water's edge, his armored men helpless in the surf. The captains refuse to press the attack; the fleet weighs anchor. The islands remember."],
+	"spain_expelled": ["VICTORY", "The conquistador fell, the reprisal broke against your line, and now the last Spaniards are driven into the surf they came from. No fleet, no fort, no friar remains. The archipelago has learned the strangers can be beaten — and who taught it."],
 	"powder_starvation": ["VICTORY", "The Spanish guns have fallen silent — every last measure of powder spent. Without shot, armor is only weight. The expedition withdraws to Cebu, and then to the open sea."],
 	"monsoon": ["VICTORY", "Day 60. The habagat breaks over the strait, and no deep-hulled fleet dares hold anchor against it. With the Kuta still standing, Spain's season of conquest is over."],
 	"great_alliance": ["VICTORY", "Every datu of Mactan and Rajah Humabon himself now stand with Lapu-Lapu. Against a united archipelago, Spain's foothold crumbles into the sea."],

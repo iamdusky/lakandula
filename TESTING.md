@@ -30,6 +30,17 @@ now welcome alongside gameplay, balance, and stability.
 | T / R / C | Diplomacy · Research · Codex |
 | **F5 / F9** | Save / load mid-battle |
 
+## New since v0.4.0
+
+- **Campaign mode** (Mode dropdown on the briefing screen) — the war no
+  longer ends when Magellan falls. Weather the landing, break the assault,
+  fell the conquistador, endure the leaderless **Reprisal**, then drive
+  every last Spaniard into the sea. Objectives tracked top-left. Skirmish
+  keeps the classic fast game.
+- **Converted villages resist you** — winning back a barangay Spain has
+  baptized now takes 5 gifts, not 2, and losing one wipes your utang
+  investment. Watch the n/required readout in the diplomacy panel (T).
+
 ## New since v0.3.0
 
 - **All-new art** — every unit, building, ship, portrait, and terrain tile

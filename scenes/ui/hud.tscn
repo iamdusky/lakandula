@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://scripts/ui/diplomacy_panel.gd" id="2_diplomacy"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/ui/tech_panel.gd" id="6_tech"]
 [ext_resource type="Script" path="res://scripts/ui/selection_info.gd" id="7_selinfo"]
 [ext_resource type="Script" path="res://scripts/ui/codex_panel.gd" id="8_codex"]
+[ext_resource type="Script" path="res://scripts/ui/objectives_panel.gd" id="9_objectives"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
@@ -100,6 +101,11 @@ theme_override_constants/margin_bottom = 8
 
 [node name="List" type="VBoxContainer" parent="DiplomacyPanel/Margin"]
 theme_override_constants/separation = 4
+
+[node name="ObjectivesPanel" type="PanelContainer" parent="."]
+offset_left = 16.0
+offset_top = 44.0
+script = ExtResource("9_objectives")
 
 [node name="TrainingPanel" type="PanelContainer" parent="."]
 anchor_top = 1.0

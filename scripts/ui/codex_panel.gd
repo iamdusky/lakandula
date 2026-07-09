@@ -42,6 +42,11 @@ func _ready() -> void:
 			unlock("tide"))
 	EventBus.datu_obligated.connect(func(_d: String, _f: String, _t: int) -> void:
 		unlock("utang"))
+	EventBus.village_contested.connect(func(_d: String, _f: String) -> void:
+		unlock("contested_faith"))
+	EventBus.objective_changed.connect(func(phase: int, _t: String, state: String) -> void:
+		if phase == VictoryManager.CampaignPhase.REPRISAL and state == "active":
+			unlock("reprisal"))
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -71,7 +71,8 @@ navigation_layers 1, naval units 2; the shallows region is layer 2 normally,
 - **Managers never call each other directly** — communicate via `EventBus` signals only.
 - **Never mutate resource dicts directly** — always `ResourceManager.spend()` / `.add()`.
 - Spanish powder is finite; tide state is public information; Humabon is a diplomacy pivot, not a combat target.
-- Game over: Lapu-Lapu's death = instant loss (his respawn never completes); Magellan's death = instant win. `VictoryManager.end_game()` pauses the tree; managers reset on `EventBus.game_started` (retry reloads the scene only).
+- Game over: Lapu-Lapu's death = instant loss (his respawn never completes); Magellan's death = instant win **in skirmish only**. `VictoryManager.end_game()` pauses the tree; managers reset on `EventBus.game_started` (retry reloads the scene only).
+- Game modes (`GameSettings.game_mode`, read LIVE via `VictoryManager.campaign_active()`): "skirmish" = parallel win conditions; "campaign" (M17) = staged phases in VictoryManager (LANDING day 15 → ASSAULT day 22/attackers<3 → CONQUISTADOR → REPRISAL 8 days → EXPEL = total Spanish elimination → "spain_expelled"). In campaign, Magellan's death triggers `SpanishAI.REPRISAL` (final landing, no more resupply) instead of victory; monsoon/powder/great-alliance stay global. Phases emit `EventBus.objective_changed`; the HUD ObjectivesPanel tracks them. Smoke test pins skirmish at start and drives campaign in its final section.
 - Unit/building groups are the lookup mechanism and are derived from faction ids: `"units"`, `"faction_mactan"`, `"faction_spain"`, `"faction_cebu"`, `"naval_units"`, `"buildings_mactan"`, `"buildings_spain"`, `"buildings_cebu"`, `"kuta"`, `"heroes"`, `"datu_villages"`. `Unit`/`Building` `_ready()` handles this — call `super()` when overriding.
 
 ## Input actions (project.godot)
@@ -84,7 +85,11 @@ reads `Buildings` children's collision rects) — units path around structures.
 ## Diplomacy (Utang)
 
 `DiplomacyManager.give_gift(faction, datu)` places tokens (Humabon = the
-`HUMABON` const); 2 tokens ally a neutral village; `call_utang(faction, datu,
+`HUMABON` const); 2 tokens ally a NEUTRAL village, but a village held by the
+other faction costs 5 (`VILLAGE_CONTEST_THRESHOLD`) — and any alignment
+change wipes the losing faction's tokens on that datu, so a Spanish
+conversion destroys the player's prior investment (emits `village_contested`
+on a contested win). `call_utang(faction, datu,
 "supplies"|"fighters"|"intel")` cashes one in; Spain-allied datus default and
 apply Disgrace. Humabon ladder: 3 tokens = Enrique event, 5 = Katipunan Offer
 (`accept_katipunan_offer()`, 20 Honor, ends Spain's tribute), 7 while neutral

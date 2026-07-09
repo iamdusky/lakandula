@@ -14,8 +14,12 @@ const DATU_GIFT_COST := {"rice": 40, "copper": 10}
 const HUMABON_GIFT_COST := {"rice": 60, "copper": 20}
 const KATIPUNAN_HONOR_COST := 20
 
-## A neutral (or wavering) datu allies with the gifting faction at this many tokens.
+## A neutral datu allies with the gifting faction at this many tokens.
 const VILLAGE_ALLY_THRESHOLD := 2
+## A village already sworn to the OTHER faction costs far more to win over —
+## and losing a village wipes your accumulated tokens on it (see
+## _on_datu_allied), so the investment must be rebuilt from zero.
+const VILLAGE_CONTEST_THRESHOLD := 5
 const ENRIQUE_THRESHOLD := 3
 const KATIPUNAN_THRESHOLD := 5
 const FULL_FLIP_THRESHOLD := 7
@@ -38,6 +42,18 @@ var katipunan_offered := false
 
 func _ready() -> void:
 	EventBus.game_started.connect(_on_game_started)
+	EventBus.datu_allied.connect(_on_datu_allied)
+
+
+## When a village changes hands, every OTHER faction's utang tokens on it
+## are wiped — a converted datu no longer honors old debts. This is what
+## keeps a Spanish conversion from being undone by one cheap gift.
+func _on_datu_allied(datu: String, faction: String) -> void:
+	if not utang_ledger.has(datu):
+		return
+	for holder in utang_ledger[datu]:
+		if holder != faction:
+			utang_ledger[datu][holder] = 0
 
 
 ## Fresh ledger on every game start (retry reloads the scene, not autoloads).
@@ -180,12 +196,29 @@ func _full_flip() -> void:
 		UnitSpawner.spawn(FIGHTER_SCENE, anchor + offset, FACTION_MACTAN, true)
 
 
-func _maybe_ally_village(datu: String, faction: String) -> void:
-	if get_tokens(datu, faction) < VILLAGE_ALLY_THRESHOLD:
-		return
+## Threshold to win a village by gifts, given its current alignment.
+func village_flip_threshold(datu: String, faction: String) -> int:
 	var village := _find_village(datu)
-	if village != null:
-		village.ally(faction)
+	if village == null or village.alignment == DatuVillage.Alignment.NEUTRAL:
+		return VILLAGE_ALLY_THRESHOLD
+	var owned_by_us := (faction == "mactan" and village.alignment == DatuVillage.Alignment.ALLIED_MACTAN) \
+		or (faction == "spain" and village.alignment == DatuVillage.Alignment.ALLIED_SPAIN)
+	return 0 if owned_by_us else VILLAGE_CONTEST_THRESHOLD
+
+
+func _maybe_ally_village(datu: String, faction: String) -> void:
+	var village := _find_village(datu)
+	if village == null:
+		return
+	var required := village_flip_threshold(datu, faction)
+	if required == 0 or get_tokens(datu, faction) < required:
+		return
+	var contested := village.alignment != DatuVillage.Alignment.NEUTRAL
+	village.ally(faction)
+	if contested:
+		EventBus.village_contested.emit(datu, faction)
+		EventBus.hud_notification.emit(
+			"%s breaks with the strangers and returns to the fold!" % datu)
 
 
 func _find_village(datu: String) -> DatuVillage:

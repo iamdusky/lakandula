@@ -3,10 +3,12 @@ extends Node
 ## EventBus.day_advanced and the powder supply:
 ##   SAIL_IN (game start) -> ESTABLISH (day 5) -> CONVERT (day 8)
 ##   -> ASSAULT (day 15) -> DESPERATE (powder < 20 or day > 35)
+##   -> REPRISAL (campaign mode only: Magellan dies -> leaderless fury —
+##      one last landing, everything attacks, no more resupply)
 ## Fleet is invulnerable until the landing (historical grace period).
 ## Powder resupply ship arrives every 20 minutes.
 
-enum State { IDLE, SAIL_IN, ESTABLISH, CONVERT, ASSAULT, DESPERATE }
+enum State { IDLE, SAIL_IN, ESTABLISH, CONVERT, ASSAULT, DESPERATE, REPRISAL }
 
 const TICK := 2.0
 const WAVE_INTERVAL := 50.0
@@ -47,6 +49,15 @@ var _resupply_timer: Timer = null
 func _ready() -> void:
 	EventBus.game_started.connect(_on_game_started)
 	EventBus.day_advanced.connect(_on_day_advanced)
+	EventBus.hero_died.connect(_on_hero_died)
+
+
+## In campaign mode Magellan's death doesn't end the game — it unleashes
+## the Reprisal (in skirmish, VictoryManager ends the game instead).
+func _on_hero_died(hero: Node) -> void:
+	if hero is Magellan and state != State.IDLE \
+			and GameSettings.game_mode == "campaign":
+		_advance_to(State.REPRISAL)
 
 
 func _process(delta: float) -> void:
@@ -106,10 +117,12 @@ func _enter_state(new_state: State) -> void:
 			_begin_assault()
 		State.DESPERATE:
 			_go_desperate()
+		State.REPRISAL:
+			_begin_reprisal()
 
 
 func _tick() -> void:
-	if state >= State.ESTABLISH and state != State.DESPERATE \
+	if state >= State.ESTABLISH and state < State.DESPERATE \
 			and ResourceManager.get_amount(FACTION, "powder") < POWDER_CRITICAL:
 		_enter_state(State.DESPERATE)
 		return
@@ -125,6 +138,8 @@ func _tick() -> void:
 				_wave_accumulator = 0.0
 				_spawn_wave()
 		State.DESPERATE:
+			_press_the_assault()
+		State.REPRISAL:
 			_press_the_assault()
 
 
@@ -211,6 +226,23 @@ func _go_desperate() -> void:
 	EventBus.hud_notification.emit("Spain gambles everything on one final push!")
 
 
+## Leaderless fury: the last men come ashore, everyone attacks, and the
+## resupply ships stop coming — Spain is spending itself.
+func _begin_reprisal() -> void:
+	if _resupply_timer != null:
+		_resupply_timer.stop()
+	for i in int(GameSettings.difficulty_value("landing_soldados")) + 1:
+		UnitSpawner.spawn(SOLDADO_SCENE, LANDING_ZONE + Vector2(-70 + 36 * i, 0), FACTION, true)
+	for i in int(GameSettings.difficulty_value("landing_arcabuceros")):
+		UnitSpawner.spawn(ARCABUCERO_SCENE, LANDING_ZONE + Vector2(-50 + 44 * i, 44), FACTION, true)
+	for i in 2:
+		UnitSpawner.spawn(JINETE_SCENE, LANDING_ZONE + Vector2(-20 + 60 * i, 84), FACTION, true)
+	_order_combat_units_to_attack()
+	EventBus.minimap_ping.emit(LANDING_ZONE)
+	EventBus.hud_notification.emit(
+		"Magellan is dead — the Spanish fight with nothing left to lose!")
+
+
 # --- Recurring actions ---
 
 func _task_frailes() -> void:
@@ -295,6 +327,8 @@ func _order_combat_units_to_attack() -> void:
 
 
 func _on_powder_resupply() -> void:
+	if state >= State.REPRISAL:
+		return  # no more ships are coming
 	ResourceManager.add(FACTION, {"powder": POWDER_RESUPPLY_AMOUNT})
 	_powder_warning_sent = false
 	if state == State.DESPERATE:

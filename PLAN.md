@@ -18,14 +18,14 @@
 
 > **▶ NEXT BUILD ORDER (locked with owner 2026-07-07 — follow this when
 > writing code, not milestone number order):**
-> 1. **Village re-flip bug** (small, standalone — see "Bug" section below)
-> 2. **M17 — Campaign Objectives** (biggest impact on the length problem; no art dependency)
-> 3. **M18 — Attrition & Persistent Threat**
+> 1. ~~**Village re-flip bug**~~ ✅ done 2026-07-07
+> 2. ~~**M17 — Campaign Objectives**~~ ✅ done 2026-07-07
+> 3. **M18 — Attrition & Persistent Threat** ← next
 > 4. **M19 — Base Building & Placement**
 >
-> Milestones 0–14 are ✅ done. M15 (asset integration) is blocked on artist
-> delivery — do NOT start it until real sprite sheets arrive. M16 is CI-done,
-> public-release items pending.
+> Milestones 0–14 + 17 are ✅ done. M15 (asset integration) is blocked on
+> artist delivery — do NOT start it until real sprite sheets arrive. M16 is
+> CI-done, public-release items pending.
 
 ---
 
@@ -607,7 +607,7 @@ The **Utang mechanic** from the board game translates here as a **diplomacy reso
 ---
 
 ## Milestone 17 — Campaign Objectives (game length restructure)
-**Status:** 🔲 Not started — planned 2026-07-07  
+**Status:** ✅ Complete (2026-07-07)  
 **Goal:** Fix the core pacing problem: a skilled player rushes Magellan and
 ends a ~30 min game in ~8 min, skipping the economy, tech, and diplomacy
 layers entirely. Make killing Magellan a **turning point**, not the credits,
@@ -623,33 +623,40 @@ fast game as an explicit "Skirmish" mode.
 >   **Campaign** = the full staged arc below.
 > - No new art required — pure GDScript over existing systems. NOT blocked
 >   on M15 asset delivery.
+>
+> **Implementation notes (2026-07-07):** phase machine lives inside
+> VictoryManager (no new autoload); `GameSettings.game_mode` is read LIVE
+> (`campaign_active()`), so the smoke test's early pin covers the whole
+> suite. Monsoon / powder starvation / great alliance remain GLOBAL
+> alternate victories in campaign (nature and diplomacy can still end the
+> war early); the staged path adds the new "spain_expelled" ending — total
+> elimination of Spanish units (friars included) and structures. Killing
+> Magellan during ASSAULT skips ahead to REPRISAL. Assault "broken" = day 22
+> or <3 non-passive Spanish land units east of x=-448. Reprisal endures 8
+> days (or Spanish combat wipe-out). Campaign fields ride the existing
+> save/load. Tracker panel top-left ("THE WAR FOR MACTAN"), campaign only.
 
 ### Game-mode framework
-- [ ] `GameSettings.game_mode` ("skirmish" | "campaign"), persisted; briefing-screen dropdown next to Difficulty
-- [ ] Smoke test pins "skirmish" at start (keeps the existing 194 checks valid unchanged)
-- [ ] `VictoryManager` branches on mode: skirmish = today's parallel conditions; campaign = the staged `ObjectiveTracker` below
+- [x] `GameSettings.game_mode` ("skirmish" | "campaign"), persisted; briefing-screen dropdown next to Difficulty
+- [x] Smoke test pins "skirmish" at start (existing checks valid unchanged)
+- [x] `VictoryManager` branches on mode: skirmish = parallel conditions; campaign = staged phases (VictoryManager-owned)
 
 ### Objective system (campaign mode)
-- [ ] `ObjectiveTracker` (autoload or VictoryManager-owned) — ordered phases, each with a completion predicate + optional failure predicate; emits `EventBus.objective_changed(phase, text, state)`
-- [ ] Phases (draft — tune in playtest):
-  1. **Weather the Landing** — survive to the assault (day 15) with the Kuta standing
-  2. **Break the Assault** — repel the day-15 combined-arms push (Spanish attackers on the island drop below a threshold, or the assault-wave timer elapses with Kuta intact)
-  3. **Fell the Conquistador** — kill Magellan (the old instant-win, now a mid-campaign beat)
-  4. **Endure the Reprisal** — survive the leaderless fury phase (see AI below)
-  5. **Expel Spain** — final win: force withdrawal via powder starvation, liberation, or monsoon
-- [ ] Loss conditions persist across all phases (Kuta razed / Lapu-Lapu dead)
-- [ ] HUD **objectives tracker** panel — current phase highlighted, completed ticked; toggle or always-on corner list
+- [x] Phase machine in VictoryManager — ordered phases with completion predicates; emits `EventBus.objective_changed(phase, title, state)`
+- [x] Phases: Weather the Landing (day 15) → Break the Assault (day 22 / attackers thinned) → Fell the Conquistador → Endure the Reprisal (8 days) → Expel Spain (total elimination → "spain_expelled")
+- [x] Loss conditions persist across all phases (Kuta razed / Lapu-Lapu dead)
+- [x] HUD objectives tracker — ✓ completed / ▶ active / · upcoming, top-left, campaign only
 
 ### Reprisal AI phase
-- [ ] New `SpanishAI` state **REPRISAL**, entered on `hero_died(Magellan)` in campaign mode (skirmish still instant-wins)
-- [ ] Behavior: abandon conversion, all remaining units attack-move the Kuta; a final reinforcement landing (scaled by difficulty); powder resupply disabled (they're spending their last)
-- [ ] Ends when Spanish forces on the island are eliminated OR a survival timer elapses → advances objective to "Expel Spain"
-- [ ] Notification beat: "Magellan is dead — the Spanish fight with nothing left to lose."
+- [x] `SpanishAI.REPRISAL`, entered on `hero_died(Magellan)` in campaign mode (skirmish still instant-wins)
+- [x] Abandons conversion; all units attack; final difficulty-scaled landing; powder resupply disabled
+- [x] Ends on Spanish combat wipe-out OR the 8-day timer → "Expel Spain"
+- [x] Notification beat: "Magellan is dead — the Spanish fight with nothing left to lose!"
 
 ### Verification
-- [ ] Smoke test: skirmish path unchanged (existing checks)
-- [ ] Smoke test: campaign path — drive phases 1→5, assert `objective_changed` fires in order, Magellan death advances (not ends), Reprisal state entered, final expel wins
-- [ ] Historical codex beat unlocked on entering Reprisal (Humabon's betrayal of the survivors)
+- [x] Smoke test: skirmish path unchanged (all prior checks green)
+- [x] Smoke test: campaign path — phases 1→5 driven in order, Magellan death advances (not ends), REPRISAL entered + landing arrives, expel wins with ordered `objective_changed` log (212 checks total)
+- [x] Historical codex beat on entering Reprisal — "The Feast of Cebu" (Humabon's betrayal of the survivors)
 
 ---
 
@@ -726,7 +733,7 @@ strategic.
 ---
 
 ## Bug — converted village can be cheaply re-flipped
-**Status:** 🔲 Not started — logged 2026-07-07 (small, standalone)  
+**Status:** ✅ Fixed (2026-07-07)  
 **Symptom:** After a Spanish friar converts a neutral village, the player can
 give one gift and instantly flip it back to Mactan. Not intended — a
 converted barangay should be sticky.
@@ -738,10 +745,17 @@ converted barangay should be sticky.
 > Spanish conversion, and a single fresh gift re-crosses the threshold and
 > re-flips it — cheap and instant.
 
-- [ ] A village already aligned (to either faction) resists flipping: require more tokens to *contest* an owned village than to win a neutral one (e.g. neutral = 2, contested = 4–5), OR make Spanish-converted villages unwinnable by gift and reclaimable only by force (ties into M18's reclamation loop — pick one direction)
-- [ ] Clear/decay the losing faction's tokens on a village when it changes alignment, so old investment doesn't linger
-- [ ] Notification + codex framing when a contested flip succeeds ("the datu returns to the fold")
-- [ ] Decide interaction with M18: is gift-reclamation allowed at all in campaign, or is force the only way back? (Design call — flag for playtest)
+> **Resolution:** contested-threshold direction chosen (keeps diplomacy
+> viable without M18): neutral village = 2 tokens, village held by the other
+> faction = 5 (`VILLAGE_CONTEST_THRESHOLD`). On any alignment change, every
+> other faction's tokens on that datu are wiped — so a conversion destroys
+> the player's prior investment and the 5 must be earned fresh. Diplomacy
+> panel shows "Utang n/required" per village.
+
+- [x] Contested villages resist flipping: neutral = 2, contested = 5 (force-only reclamation deferred to M18 as a possible campaign-mode tightening)
+- [x] Losing faction's tokens wiped when a village changes alignment
+- [x] Notification ("breaks with the strangers and returns to the fold") + codex entry "The Contested Faith" on the first contested flip
+- [x] M18 interaction decided: gift-reclamation stays legal at the steeper price; M18 may add force-reclamation as the cheaper *military* path (flag for playtest)
 
 ## Backlog / Future
 

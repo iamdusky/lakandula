@@ -23,6 +23,7 @@ signal datu_obligated(datu: String, faction: String, tokens: int)
 signal datu_allied(datu: String, faction: String)
 signal utang_called(datu: String, faction: String)
 signal utang_defaulted(datu: String, faction: String)
+signal village_contested(datu: String, faction: String)
 signal humabon_flip_stage(stage: String)
 
 # --- Spanish AI ---
@@ -46,6 +47,9 @@ signal building_destroyed(building: Node)
 
 # --- Abilities ---
 signal ritual_reveal(duration: float)
+
+# --- Campaign objectives (M17) ---
+signal objective_changed(phase: int, title: String, state: String)
 
 # --- Game flow ---
 signal game_started

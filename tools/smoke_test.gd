@@ -23,8 +23,11 @@ func _ready() -> void:
 func _run() -> void:
 	await _wait(0.6)
 	# Difficulty persists across runs — pin it so scripted counts (landing
-	# size, starting powder) are deterministic.
+	# size, starting powder) are deterministic. Mode persists too: pin
+	# skirmish so the suite runs the original rules until the dedicated
+	# campaign section at the end (VictoryManager reads the mode live).
 	GameSettings.set_difficulty("normal")
+	GameSettings.set_game_mode("skirmish")
 
 	# --- Milestone 1: core loop ---
 	var warrior := get_tree().get_first_node_in_group("faction_mactan") as Unit
@@ -227,6 +230,26 @@ func _run() -> void:
 		"Spain-allied datu refuses the call")
 	_check(defaulted[0], "utang_defaulted emitted")
 	_check(DiplomacyManager.disgrace.get("mactan", 0) == 1, "Disgrace token applied")
+
+	# --- Village re-flip fix: converted villages resist gifts ---
+	# village_b is Spain-allied; the default above consumed its old token.
+	var contested := [false]
+	EventBus.village_contested.connect(func(_d: String, _f: String) -> void: contested[0] = true)
+	DiplomacyManager.give_gift("mactan", village_b.datu_name)
+	DiplomacyManager.give_gift("mactan", village_b.datu_name)
+	_check(village_b.alignment == DatuVillage.Alignment.ALLIED_SPAIN,
+		"2 tokens no longer flip a converted village")
+	for i in 3:
+		DiplomacyManager.give_gift("mactan", village_b.datu_name)
+	_check(village_b.alignment == DatuVillage.Alignment.ALLIED_MACTAN,
+		"5 tokens win back a converted village")
+	_check(contested[0], "village_contested emitted for the hard-won flip")
+	# Losing a village wipes the loser's utang investment.
+	DiplomacyManager.give_gift("mactan", datu_c)  # mactan-allied, 0 -> 1 token
+	village_c.ally("spain")  # a friar converts it out from under us
+	_check(DiplomacyManager.get_tokens(datu_c, "mactan") == 0,
+		"conversion wiped Mactan's tokens on the lost village")
+	village_c.ally("mactan")  # restore for downstream sections
 
 	# Humabon ladder: 3 = Enrique, 5 = Katipunan Offer.
 	for i in 5:
@@ -786,6 +809,75 @@ func _run() -> void:
 	kuta.sunugin()
 	_check(results.size() == 6 and results[5] == ["spain", "kuta_razed"],
 		"Kuta razed -> Spain victory")
+
+	# --- Milestone 17: campaign mode (a fresh war on the torn battlefield) ---
+	_reset_game_over(screen)
+	# Lapu-Lapu died in the M7 checks; park his respawn far from the new
+	# war so the campaign can't end in lapu_lapu_killed by accident.
+	if is_instance_valid(lapu):
+		lapu._spawn_position = Vector2(900, -400)
+		lapu.global_position = Vector2(900, -400)
+		if lapu.state != Unit.State.DEAD:
+			lapu.stop()
+	GameSettings.set_game_mode("campaign")
+	var objective_log: Array = []
+	EventBus.objective_changed.connect(func(phase: int, _title: String, state: String) -> void:
+		objective_log.append([phase, state]))
+	VictoryManager.start_game()
+	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.LANDING,
+		"campaign opens on Weather the Landing")
+	var objectives_panel := get_tree().current_scene.get_node("HUD/ObjectivesPanel")
+	_check(objectives_panel.visible, "objectives tracker shown in campaign mode")
+
+	EventBus.day_advanced.emit(5)   # Spain lands; fleet grace ends
+	EventBus.day_advanced.emit(15)  # the assault begins
+	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.ASSAULT,
+		"day 15 -> Break the Assault")
+	var conquistador := SpanishAI.magellan
+	_check(conquistador != null and is_instance_valid(conquistador),
+		"Magellan leads the campaign assault")
+
+	EventBus.day_advanced.emit(22)  # the assault window closes, Kuta-less but unbowed
+	await _wait(0.7)
+	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.CONQUISTADOR,
+		"assault broken -> Fell the Conquistador")
+
+	var spain_before_reprisal := get_tree().get_nodes_in_group("faction_spain").size()
+	conquistador.take_damage(999999.0, null, true)
+	_check(VictoryManager.game_active, "Magellan's death no longer ends the campaign")
+	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.REPRISAL,
+		"his death opens Endure the Reprisal")
+	_check(SpanishAI.state == SpanishAI.State.REPRISAL, "Spanish AI enters REPRISAL")
+	_check(get_tree().get_nodes_in_group("faction_spain").size() > spain_before_reprisal,
+		"the reprisal landing came ashore")
+	_check("reprisal" in codex.unlocked, "Reprisal unlocked the Feast of Cebu entry")
+
+	EventBus.day_advanced.emit(30)  # 22 + 8 days endured
+	await _wait(0.7)
+	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.EXPEL,
+		"reprisal endured -> Expel Spain")
+
+	# Drive the last of them into the sea.
+	for node in get_tree().get_nodes_in_group("faction_spain"):
+		var invader := node as Unit
+		if invader != null and invader.state != Unit.State.DEAD:
+			invader.invulnerable = false
+			invader.take_damage(999999.0, null, true)
+	for node in get_tree().get_nodes_in_group("buildings_spain"):
+		if not node.is_dead():
+			node.take_damage(999999.0, null, true)
+	await _wait(0.7)
+	_check(not results.is_empty() and results.back() == ["mactan", "spain_expelled"],
+		"Spain expelled -> campaign victory")
+	_check(screen.get_node("Center/Box/TitleLabel").text == "VICTORY",
+		"campaign victory screen shown")
+	var completed_order: Array = []
+	for entry in objective_log:
+		if entry[1] == "completed":
+			completed_order.append(entry[0])
+	_check(completed_order == [0, 1, 2, 3, 4],
+		"objectives completed strictly in order %s" % [completed_order])
+	GameSettings.set_game_mode("skirmish")  # leave settings clean
 
 	_finish()
 

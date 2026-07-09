@@ -71,6 +71,19 @@ func _ready() -> void:
 		GameSettings.set_difficulty(levels[index]))
 	difficulty_row.add_child(difficulty_options)
 
+	var mode_label := Label.new()
+	mode_label.text = "   Mode"
+	difficulty_row.add_child(mode_label)
+	var mode_options := OptionButton.new()
+	var mode_names := ["Skirmish — single battle", "Campaign — the full war"]
+	for i in GameSettings.GAME_MODES.size():
+		mode_options.add_item(mode_names[i], i)
+		if GameSettings.GAME_MODES[i] == GameSettings.game_mode:
+			mode_options.select(i)
+	mode_options.item_selected.connect(func(index: int) -> void:
+		GameSettings.set_game_mode(GameSettings.GAME_MODES[index]))
+	difficulty_row.add_child(mode_options)
+
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 24)
