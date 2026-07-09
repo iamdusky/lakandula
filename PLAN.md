@@ -16,6 +16,17 @@
 > kulintang music) shipped; v0.1.0 tester builds released on GitHub
 > (macOS/Windows/Linux). Next up: Milestones 13–16 below.
 
+> **▶ NEXT BUILD ORDER (locked with owner 2026-07-07 — follow this when
+> writing code, not milestone number order):**
+> 1. **Village re-flip bug** (small, standalone — see "Bug" section below)
+> 2. **M17 — Campaign Objectives** (biggest impact on the length problem; no art dependency)
+> 3. **M18 — Attrition & Persistent Threat**
+> 4. **M19 — Base Building & Placement**
+>
+> Milestones 0–14 are ✅ done. M15 (asset integration) is blocked on artist
+> delivery — do NOT start it until real sprite sheets arrive. M16 is CI-done,
+> public-release items pending.
+
 ---
 
 ## Core Concept
