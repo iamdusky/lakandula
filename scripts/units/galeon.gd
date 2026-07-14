@@ -14,6 +14,7 @@ func _ready() -> void:
 	super()
 	add_to_group("naval_units")
 	add_to_group("galleons")
+	add_to_group("powder_weapons")
 
 
 func _perform_attack(target: Node2D) -> void:

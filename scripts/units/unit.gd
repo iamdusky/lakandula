@@ -50,6 +50,9 @@ var _stun_timer := 0.0
 var _auto_target := false
 var _guard_position := Vector2.INF
 var _attack_move_dest := Vector2.INF
+## Kuta garrison (M18): while set, _process_moving() watches for arrival and
+## hands the unit off to the building's garrison_unit().
+var _garrison_target: Node2D = null
 var _aggro_accumulator := 0.0
 var _morale_accumulator := 0.0
 var _rout_timer := 0.0
@@ -115,8 +118,17 @@ func command_move(world_pos: Vector2) -> void:
 	_auto_target = false
 	_attack_move_dest = Vector2.INF
 	_guard_position = Vector2.INF
+	_garrison_target = null
 	nav_agent.target_position = world_pos
 	state = State.MOVING
+
+
+## Move to the building and garrison inside once in range.
+func command_garrison(target: Node2D) -> void:
+	if state == State.DEAD:
+		return
+	command_move(target.global_position)
+	_garrison_target = target
 
 
 func command_attack(target: Node2D) -> void:
@@ -126,6 +138,7 @@ func command_attack(target: Node2D) -> void:
 	_auto_target = false
 	_attack_move_dest = Vector2.INF
 	_guard_position = Vector2.INF
+	_garrison_target = null
 	state = State.ATTACKING
 
 
@@ -149,6 +162,7 @@ func stop() -> void:
 	_auto_target = false
 	_attack_move_dest = Vector2.INF
 	_guard_position = Vector2.INF
+	_garrison_target = null
 	velocity = Vector2.ZERO
 	state = State.IDLE
 
@@ -266,6 +280,15 @@ func _tick_status(delta: float) -> void:
 
 
 func _process_moving() -> void:
+	if _garrison_target != null:
+		if not is_instance_valid(_garrison_target) or _garrison_target.is_dead():
+			_garrison_target = null
+		elif global_position.distance_to(_garrison_target.global_position) \
+				< _garrison_target.attack_radius + 50.0:
+			var g := _garrison_target
+			_garrison_target = null
+			g.garrison_unit(self)
+			return
 	if nav_agent.is_navigation_finished():
 		stop()
 		return
@@ -286,7 +309,8 @@ func _process_attacking() -> void:
 		return
 	var distance := global_position.distance_to(attack_target.global_position) \
 		- _target_radius(attack_target)
-	if distance > data.attack_range:
+	var reach := data.attack_range * TideManager.weapon_range_multiplier(self)
+	if distance > reach:
 		nav_agent.target_position = attack_target.global_position
 		if not nav_agent.is_navigation_finished():
 			_step_along_path()

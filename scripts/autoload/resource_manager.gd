@@ -8,6 +8,13 @@ const FACTION_SPAIN := "spain"
 const INCOME_INTERVAL := 5.0
 const MACTAN_BASE_INCOME := {"rice": 10, "copper": 2, "honor": 1}
 const SPAIN_BASE_INCOME := {"gold": 5}
+
+## Army upkeep (M18, campaign-only): armies beyond the free size cost rice
+## to feed, applied each income tick.
+const FREE_ARMY_SIZE := 12
+const UPKEEP_RICE_PER_UNIT := 1
+const UPKEEP_NOTICE_INTERVAL_MSEC := 45000
+var _last_upkeep_notice_msec := 0
 ## Each allied datu village adds +15% to Mactan income (+25% with the
 ## Barangay Alliance tech).
 const ALLY_INCOME_BONUS := 0.15
@@ -64,6 +71,7 @@ func _on_game_started() -> void:
 	_spain_tribute_active = false
 	_humabon_flipped = false
 	ally_income_bonus = ALLY_INCOME_BONUS
+	_last_upkeep_notice_msec = 0
 	EventBus.resources_changed.emit(FACTION_MACTAN, resources[FACTION_MACTAN])
 	EventBus.resources_changed.emit(FACTION_SPAIN, resources[FACTION_SPAIN])
 
@@ -97,6 +105,26 @@ func _on_income_tick() -> void:
 	add(FACTION_MACTAN, gains)
 	if _spain_tribute_active:
 		add(FACTION_SPAIN, {"gold": GameSettings.difficulty_value("tribute_gold")})
+	var upkeep := army_upkeep()
+	if upkeep > 0:
+		resources[FACTION_MACTAN]["rice"] = maxi(0, resources[FACTION_MACTAN]["rice"] - upkeep)
+		EventBus.resources_changed.emit(FACTION_MACTAN, resources[FACTION_MACTAN])
+		var now := Time.get_ticks_msec()
+		if now - _last_upkeep_notice_msec >= UPKEEP_NOTICE_INTERVAL_MSEC:
+			_last_upkeep_notice_msec = now
+			EventBus.hud_notification.emit(
+				"Feeding the war band strains the stores (-%d rice)." % upkeep)
+
+
+## Campaign-only: rice cost per income tick for army above FREE_ARMY_SIZE.
+func army_upkeep() -> int:
+	if GameSettings.game_mode != "campaign":
+		return 0
+	var count := 0
+	for node in get_tree().get_nodes_in_group("faction_mactan"):
+		if node is Unit and not node.is_dead() and not node.is_in_group("heroes"):
+			count += 1
+	return maxi(0, count - FREE_ARMY_SIZE) * UPKEEP_RICE_PER_UNIT
 
 
 func save_state() -> Dictionary:

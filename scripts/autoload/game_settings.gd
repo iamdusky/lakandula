@@ -8,11 +8,14 @@ const PATH := "user://settings.cfg"
 ## Difficulty scales Spain's aggression, not the player's stats.
 const DIFFICULTY := {
 	"easy": {"wave_interval": 65.0, "wave_bonus": -1, "landing_soldados": 3,
-		"landing_arcabuceros": 2, "start_powder": 80, "tribute_gold": 4},
+		"landing_arcabuceros": 2, "start_powder": 80, "tribute_gold": 4,
+		"reinforce_interval": 220.0},
 	"normal": {"wave_interval": 50.0, "wave_bonus": 0, "landing_soldados": 4,
-		"landing_arcabuceros": 3, "start_powder": 100, "tribute_gold": 5},
+		"landing_arcabuceros": 3, "start_powder": 100, "tribute_gold": 5,
+		"reinforce_interval": 180.0},
 	"hard": {"wave_interval": 40.0, "wave_bonus": 1, "landing_soldados": 5,
-		"landing_arcabuceros": 4, "start_powder": 130, "tribute_gold": 7},
+		"landing_arcabuceros": 4, "start_powder": 130, "tribute_gold": 7,
+		"reinforce_interval": 140.0},
 }
 
 ## "skirmish" = the original single battle: any victory condition ends the

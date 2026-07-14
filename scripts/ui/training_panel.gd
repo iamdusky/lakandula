@@ -8,6 +8,7 @@ var _title: Label
 var _buttons_row: HBoxContainer
 var _queue_label: Label
 var _cancel_button: Button
+var _sally_button: Button
 
 
 func _ready() -> void:
@@ -33,6 +34,13 @@ func _ready() -> void:
 		if _building != null:
 			_building.cancel_queued())
 	queue_row.add_child(_cancel_button)
+	_sally_button = Button.new()
+	_sally_button.text = "Sally forth"
+	_sally_button.visible = false
+	_sally_button.pressed.connect(func() -> void:
+		if _building != null and is_instance_valid(_building) and "garrisoned" in _building:
+			_building.release_garrison())
+	queue_row.add_child(_sally_button)
 	EventBus.building_selected.connect(_on_building_selected)
 
 
@@ -69,6 +77,11 @@ func _refresh_queue() -> void:
 		visible = false
 		_building = null
 		return
+	if "garrisoned" in _building and not _building.garrisoned.is_empty():
+		_sally_button.visible = true
+		_sally_button.text = "Sally forth (%d)" % _building.garrisoned.size()
+	else:
+		_sally_button.visible = false
 	if _building.queue.is_empty():
 		_queue_label.text = "Queue empty"
 		_cancel_button.disabled = true

@@ -228,6 +228,16 @@ func _issue_command() -> void:
 			selected_building.set_rally_point(_world_mouse())
 		return
 	var world := _world_mouse()
+	if GameSettings.game_mode == "campaign":
+		var kuta_building := get_tree().get_first_node_in_group("kuta") as Building
+		if kuta_building != null and not kuta_building.is_dead() \
+				and kuta_building.faction == "mactan" \
+				and kuta_building.has_method("garrison_unit") \
+				and world.distance_to(kuta_building.global_position) <= kuta_building.attack_radius:
+			for unit in units:
+				unit.command_garrison(kuta_building)
+			EventBus.command_issued.emit("garrison", kuta_building)
+			return
 	var enemy := _enemy_at(world)
 	if enemy != null:
 		for unit in units:

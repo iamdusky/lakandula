@@ -25,7 +25,12 @@ const GALLEON_LOW_MULT := 0.0
 const GALLEON_HIGH_MULT := 1.1
 const KARAKOA_LOW_MULT := 1.3
 
+## Reprisal storm (M18, campaign-only): the squall that opens during
+## VictoryManager's REPRISAL phase floods Spanish powder weapons' range.
+const STORM_POWDER_RANGE_MULT := 0.6
+
 var phase: Phase = Phase.HIGH
+var storm := false
 
 var _time_left := PHASE_DURATION
 var _warned := false
@@ -34,6 +39,7 @@ var _active := false
 
 func _ready() -> void:
 	EventBus.game_started.connect(_on_game_started)
+	EventBus.objective_changed.connect(_on_objective_changed)
 
 
 func _process(delta: float) -> void:
@@ -57,12 +63,13 @@ func phase_name() -> String:
 
 
 func save_state() -> Dictionary:
-	return {"phase": phase, "time_left": _time_left}
+	return {"phase": phase, "time_left": _time_left, "storm": storm}
 
 
 func load_state(data: Dictionary) -> void:
 	force_phase(int(data.get("phase", Phase.HIGH)) as Phase)
 	_time_left = data.get("time_left", PHASE_DURATION)
+	storm = data.get("storm", false)
 
 
 ## Units multiply their speed by this (tide is a global modifier, queried
@@ -78,6 +85,26 @@ func speed_multiplier(unit: Node) -> float:
 			if unit.is_in_group("galleons"):
 				return GALLEON_HIGH_MULT
 	return 1.0
+
+
+## Reprisal storm floods Spanish powder pans, cutting their effective range.
+func weapon_range_multiplier(unit: Node) -> float:
+	return STORM_POWDER_RANGE_MULT if storm and unit.is_in_group("powder_weapons") else 1.0
+
+
+## phase/state literals mirror VictoryManager.CampaignPhase without importing
+## it (autoload load-order safety): 3 = REPRISAL, 4 = EXPEL.
+func _on_objective_changed(phase_index: int, _title: String, state: String) -> void:
+	if state != "active":
+		return
+	if phase_index == 3:
+		storm = true
+		EventBus.hud_notification.emit(
+			"A squall sweeps the strait — powder pans flood, the guns lose their reach!")
+	elif phase_index == 4:
+		if storm:
+			storm = false
+			EventBus.hud_notification.emit("The squall passes.")
 
 
 ## Also the test/debug hook — sets the phase immediately.
@@ -101,6 +128,7 @@ func _on_game_started() -> void:
 	phase = Phase.HIGH
 	_time_left = PHASE_DURATION
 	_warned = false
+	storm = false
 	_set_shallows_open(false)
 
 

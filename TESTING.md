@@ -30,6 +30,16 @@ now welcome alongside gameplay, balance, and stability.
 | T / R / C | Diplomacy · Research · Codex |
 | **F5 / F9** | Save / load mid-battle |
 
+## New since v0.4.0 (continued — attrition update)
+
+- **The campaign fights back**: telegraphed Spanish reinforcement fleets
+  (watch for "sails on the horizon" — they alternate beaches, including a
+  new northern landing), army upkeep (rice drain past 12 units — no free
+  deathballs), a **Kuta garrison** (right-click the fort to shelter up to 6
+  who fire from the walls; "Sally forth" to release), a **storm** during the
+  Reprisal that cripples Spanish gun range, and **Babaylan liberation** —
+  park her at a converted village to break the friars' hold.
+
 ## New since v0.4.0
 
 - **Campaign mode** (Mode dropdown on the briefing screen) — the war no

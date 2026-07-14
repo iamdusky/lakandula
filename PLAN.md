@@ -20,12 +20,12 @@
 > writing code, not milestone number order):**
 > 1. ~~**Village re-flip bug**~~ ✅ done 2026-07-07
 > 2. ~~**M17 — Campaign Objectives**~~ ✅ done 2026-07-07
-> 3. **M18 — Attrition & Persistent Threat** ← next
-> 4. **M19 — Base Building & Placement**
+> 3. ~~**M18 — Attrition & Persistent Threat**~~ ✅ done 2026-07-14
+> 4. **M19 — Base Building & Placement** ← next
 >
-> Milestones 0–14 + 17 are ✅ done. M15 (asset integration) is blocked on
-> artist delivery — do NOT start it until real sprite sheets arrive. M16 is
-> CI-done, public-release items pending.
+> Milestones 0–14 + 17 + 18 are ✅ done. M15 (asset integration) is blocked
+> on artist delivery — do NOT start it until real sprite sheets arrive. M16
+> is CI-done, public-release items pending.
 
 ---
 
@@ -661,30 +661,49 @@ fast game as an explicit "Skirmish" mode.
 ---
 
 ## Milestone 18 — Attrition & Persistent Threat (campaign depth)
-**Status:** 🔲 Not started — planned 2026-07-07  
+**Status:** ✅ Complete (2026-07-14) — first milestone implemented via the `coder` subagent  
 **Goal:** Make the economy, tech tree, and reclamation *necessary* rather than
 optional during the longer campaign, so the back half is an active contest
 instead of a mop-up. Layers onto M17's campaign mode.
 
-> Depends on M17. Skirmish mode is unaffected. Some items promote existing
-> backlog entries (garrison, weather) into the campaign loop.
+> Depends on M17. Skirmish mode is unaffected — every M18 system gates on
+> `GameSettings.game_mode == "campaign"` (read live).
+>
+> **Implementation notes (2026-07-14):** Babaylan liberation frees a
+> converted village to NEUTRAL (12 s unchallenged within 110 px; any
+> non-passive Spaniard within 160 px pauses the rite) — force clears
+> Spain's grip, then normal gifting (2 tokens) wins the alliance, making
+> the military path complement the 5-gift contested-diplomacy path.
+> Reinforcement fleets every reinforce_interval (easy 220 s / normal 180 /
+> hard 140) during ASSAULT/DESPERATE: telegraph (ping + escort bergantín +
+> +15 powder) then troops ashore 20 s later, alternating the south beach
+> and a NEW north beachhead (-352, -256); none during REPRISAL. Upkeep:
+> each non-hero unit past 12 costs 1 rice per income tick (floor 0,
+> throttled notification). Garrison: RMB the Kuta (campaign) → up to 6
+> units shelter (hidden, invulnerable) while the walls fire arrows at 0.8×
+> their damage, 220 px range, at non-passive visible Spaniards; "Sally
+> forth" button releases at the gate; occupants die if the Kuta falls
+> (accepted save/load limitation: a saved garrison reloads as regular
+> units at the fort). Reprisal storm (in TideManager): Spanish
+> powder_weapons group at 0.6× range from REPRISAL until EXPEL. 224-check
+> suite green; skirmish path byte-identical.
 
 ### Reclamation loop
-- [ ] Spain keeps sending friars through CONVERT/ASSAULT (already partly true) — converted villages become a standing objective to reclaim, not a one-time loss
-- [ ] Player reclaims a Spanish-allied village by clearing nearby Spanish units + a Babaylan/hold action (mirror of the friar conversion, inverted)
-- [ ] Optional sub-goal in the objectives tracker: "Liberate N converted barangays"
+- [x] Spain keeps sending friars through CONVERT/ASSAULT (pre-existing behavior, confirmed) — converted villages are a standing objective, not a one-time loss
+- [x] Babaylan liberates a Spanish-allied village (12 s unchallenged rite → NEUTRAL; mirror of the friar, inverted)
+- [x] Objectives-tracker sub-goal: "⚑ Liberate the barangays — N under Spain" (auto-shows while any village is converted)
 
 ### Escalating siege
-- [ ] Post-day-15 waves grow over time (reinforcement galleons arrive from the west; second beachhead can open) — extends `SpanishAI` wave logic + difficulty scaling
-- [ ] Reinforcement fleet events telegraphed (minimap ping + notification) so the player can contest landings
+- [x] Reinforcement fleets during ASSAULT/DESPERATE — difficulty-scaled interval, second (northern) beachhead alternates in
+- [x] Telegraphed: minimap ping + notification + escort ship, landing 20 s later — contestable on the beach
 
 ### Attrition economy
-- [ ] Unit losses matter: soft unit cap (housing/upkeep) so deathballs can't be trivially rebuilt; rebuilding costs real economy time
-- [ ] Consider Honor/Rice sinks that reward the tech tree mid-campaign
+- [x] Army upkeep — non-hero units beyond 12 cost 1 rice per income tick (campaign only)
+- [x] Honor/Rice sinks — covered: upkeep is the rice sink; the tech tree remains the honor sink (no extra mechanism needed)
 
 ### Promote from backlog (fold into campaign)
-- [ ] Garrison mechanic — units inside the Kuta fire from the walls (matters in a sustained siege)
-- [ ] Weather — rain reduces arquebus range (ties to the monsoon fantasy; a reprisal-phase storm)
+- [x] Garrison mechanic — up to 6 units inside the Kuta fire arrows from the walls; sally to release
+- [x] Weather — the Reprisal storm cuts Spanish powder-weapon range to 0.6× until the final phase
 
 ---
 

@@ -12,6 +12,11 @@ const RETREAT_DISTANCE := 140.0
 var _retreat_timer := 0.0
 
 
+func _ready() -> void:
+	super()
+	add_to_group("powder_weapons")
+
+
 func _physics_process(delta: float) -> void:
 	super(delta)
 	if state == State.DEAD:

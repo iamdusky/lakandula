@@ -21,6 +21,13 @@ const DAY_CONVERT := 8
 const DAY_ASSAULT := 15
 const DAY_DESPERATE := 36
 
+## Reinforcement fleets (M18, campaign-only): while ASSAULT/DESPERATE holds,
+## a fresh galley periodically slips in with troops and a powder top-up —
+## alternating landing beaches so the player can't camp a single choke point.
+const LANDING_DELAY := 20.0
+const REINFORCEMENT_POWDER := 15
+const NORTH_LANDING := Vector2(-352, -256)
+
 const SOLDADO_SCENE := preload("res://scenes/units/soldado_tercio.tscn")
 const ARCABUCERO_SCENE := preload("res://scenes/units/arcabucero.tscn")
 const JINETE_SCENE := preload("res://scenes/units/jinete.tscn")
@@ -44,6 +51,10 @@ var _wave_accumulator := 0.0
 var _wave_number := 0
 var _powder_warning_sent := false
 var _resupply_timer: Timer = null
+
+var _reinforcement_accumulator := 0.0
+var _reinforcements_sent := 0
+var _pending_landing_zone := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -76,6 +87,9 @@ func _on_game_started() -> void:
 	_wave_accumulator = 0.0
 	_wave_number = 0
 	_powder_warning_sent = false
+	_reinforcement_accumulator = 0.0
+	_reinforcements_sent = 0
+	_pending_landing_zone = Vector2.ZERO
 	_enter_state(State.SAIL_IN)
 	if _resupply_timer == null:
 		_resupply_timer = Timer.new()
@@ -141,6 +155,11 @@ func _tick() -> void:
 			_press_the_assault()
 		State.REPRISAL:
 			_press_the_assault()
+	if GameSettings.game_mode == "campaign" and (state == State.ASSAULT or state == State.DESPERATE):
+		_reinforcement_accumulator += TICK
+		if _reinforcement_accumulator >= float(GameSettings.difficulty_value("reinforce_interval")):
+			_reinforcement_accumulator = 0.0
+			_telegraph_reinforcement()
 
 
 func save_state() -> Dictionary:
@@ -150,6 +169,8 @@ func save_state() -> Dictionary:
 		"wave_number": _wave_number,
 		"powder_warning_sent": _powder_warning_sent,
 		"resupply_left": _resupply_timer.time_left if _resupply_timer != null else POWDER_RESUPPLY_INTERVAL,
+		"reinforcement_accumulator": _reinforcement_accumulator,
+		"reinforcements_sent": _reinforcements_sent,
 	}
 
 
@@ -161,6 +182,8 @@ func load_state(data: Dictionary) -> void:
 	_powder_warning_sent = data.get("powder_warning_sent", false)
 	if _resupply_timer != null:
 		_resupply_timer.start(maxf(1.0, data.get("resupply_left", POWDER_RESUPPLY_INTERVAL)))
+	_reinforcement_accumulator = data.get("reinforcement_accumulator", 0.0)
+	_reinforcements_sent = int(data.get("reinforcements_sent", 0))
 	magellan = null
 	for node in get_tree().get_nodes_in_group("heroes"):
 		if node.faction == FACTION:
@@ -335,6 +358,42 @@ func _on_powder_resupply() -> void:
 		state = State.ASSAULT  # fresh powder restores the plan
 		EventBus.spanish_state_changed.emit(State.keys()[state])
 	EventBus.hud_notification.emit("A Spanish resupply ship slips through — powder replenished.")
+
+
+## Sends a lone Bergantin toward the anchor to signal a reinforcement wave
+## is inbound, alternating between the southern and northern beaches.
+func _telegraph_reinforcement() -> void:
+	_reinforcements_sent += 1
+	var zone := NORTH_LANDING if _reinforcements_sent % 2 == 0 else LANDING_ZONE
+	_pending_landing_zone = zone
+	var scout := UnitSpawner.spawn(BERGANTIN_SCENE, FLEET_SPAWN, FACTION, true)
+	if scout != null:
+		scout.command_move(FLEET_ANCHOR)
+	ResourceManager.add(FACTION, {"powder": REINFORCEMENT_POWDER})
+	EventBus.minimap_ping.emit(FLEET_SPAWN)
+	var beach := "northern" if zone == NORTH_LANDING else "southern"
+	EventBus.hud_notification.emit(
+		"Sails on the horizon — Spanish reinforcements make for the %s beach!" % beach)
+	get_tree().create_timer(LANDING_DELAY).timeout.connect(_do_reinforcement_landing)
+
+
+## Plain zero-arg method (also called directly by tests to skip the telegraph).
+func _do_reinforcement_landing() -> void:
+	if state == State.IDLE:
+		return
+	var target := _primary_target()
+	var soldado_count := maxi(1, 2 + int(GameSettings.difficulty_value("wave_bonus")))
+	for i in soldado_count:
+		var soldado := UnitSpawner.spawn(
+			SOLDADO_SCENE, _pending_landing_zone + Vector2(-60 + 40 * i, 0), FACTION, true)
+		if soldado != null and target != null:
+			soldado.command_attack(target)
+	var arcabucero := UnitSpawner.spawn(
+		ARCABUCERO_SCENE, _pending_landing_zone + Vector2(0, 44), FACTION, true)
+	if arcabucero != null and target != null:
+		arcabucero.command_attack(target)
+	EventBus.minimap_ping.emit(_pending_landing_zone)
+	EventBus.hud_notification.emit("Spanish reinforcements have landed!")
 
 
 # --- Helpers ---

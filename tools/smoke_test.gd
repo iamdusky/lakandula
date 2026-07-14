@@ -749,6 +749,41 @@ func _run() -> void:
 	brave.take_damage(999999.0, null, true)  # cleanup
 	SpanishAI.set_process(true)
 
+	# --- Milestone 18 (part 1): upkeep + garrison (campaign-gated) ---
+	GameSettings.set_game_mode("campaign")
+	_check(ResourceManager.army_upkeep() > 0, "army over the free size pays rice upkeep")
+	GameSettings.set_game_mode("skirmish")
+	_check(ResourceManager.army_upkeep() == 0, "no upkeep in skirmish")
+	GameSettings.set_game_mode("campaign")
+	# Re-enabling SpanishAI above marched the ASSAULT/DESPERATE-era Spanish
+	# force up to the Kuta's doorstep; push those stragglers (not Magellan —
+	# the M7 section below still needs him alive elsewhere) out of wall-fire
+	# range so the garrison test's own scout is unambiguously the nearest
+	# target.
+	SpanishAI.set_process(false)
+	for node in get_tree().get_nodes_in_group("faction_spain"):
+		var straggler := node as Unit
+		if straggler != null and straggler.state != Unit.State.DEAD \
+				and not straggler.is_in_group("heroes") \
+				and kuta.global_position.distance_to(straggler.global_position) <= 400.0:
+			straggler.global_position = Vector2(1400, 700)
+	var garrison_scout := UnitSpawner.spawn(SOLDADO, kuta.global_position + Vector2(-100, 0), "spain", true)
+	kuta.garrison_unit(warrior)
+	_check(kuta.garrisoned.size() == 1 and not warrior.visible and warrior.invulnerable,
+		"warrior garrisoned inside the Kuta")
+	var scout_health := garrison_scout.health
+	await _wait(2.8)
+	_check(garrison_scout.health < scout_health,
+		"garrison fires from the walls (%.0f -> %.0f)" % [scout_health, garrison_scout.health])
+	kuta.release_garrison()
+	_check(kuta.garrisoned.is_empty() and warrior.visible and not warrior.invulnerable,
+		"garrison released at the gate")
+	garrison_scout.take_damage(999999.0, null, true)
+	warrior.global_position = Vector2(104, 120)
+	warrior.stop()
+	GameSettings.set_game_mode("skirmish")
+	SpanishAI.set_process(true)
+
 	# --- Milestone 7: victory & loss conditions ---
 	var results: Array = []
 	EventBus.game_over.connect(func(w: String, c: String) -> void: results.append([w, c]))
@@ -852,10 +887,38 @@ func _run() -> void:
 		"the reprisal landing came ashore")
 	_check("reprisal" in codex.unlocked, "Reprisal unlocked the Feast of Cebu entry")
 
+	_check(TideManager.storm, "the reprisal storm breaks")
+	var storm_gun: Unit = null
+	for node in get_tree().get_nodes_in_group("powder_weapons"):
+		if node.faction == "spain" and node.state != Unit.State.DEAD:
+			storm_gun = node
+			break
+	_check(storm_gun != null and TideManager.weapon_range_multiplier(storm_gun) < 1.0,
+		"storm cuts Spanish gun range")
+
 	EventBus.day_advanced.emit(30)  # 22 + 8 days endured
 	await _wait(0.7)
 	_check(VictoryManager.campaign_phase == VictoryManager.CampaignPhase.EXPEL,
 		"reprisal endured -> Expel Spain")
+
+	_check(not TideManager.storm, "the squall passes with the reprisal")
+	# Reclamation: a babaylan frees a converted barangay (Mangal, NE corner, unchallenged).
+	ResourceManager.add("mactan", {"rice": 200, "honor": 20})
+	village_b.ally("spain")
+	var panel_lib := get_tree().current_scene.get_node("HUD/ObjectivesPanel")
+	_check(panel_lib._liberation_label.visible, "liberation objective line appears")
+	var liberator := UnitSpawner.spawn(BABAYLAN, village_b.global_position + Vector2(60, 30), "mactan") as Babaylan
+	liberator._liberate_progress = 11.0
+	await _wait(1.4)
+	_check(village_b.alignment == DatuVillage.Alignment.NEUTRAL,
+		"babaylan liberated the converted village")
+	_check(not panel_lib._liberation_label.visible, "liberation line clears")
+	# Reinforcement fleet landing (direct call — the 20 s telegraph timer is skipped).
+	var spain_before_fleet := get_tree().get_nodes_in_group("faction_spain").size()
+	SpanishAI._pending_landing_zone = SpanishAI.LANDING_ZONE
+	SpanishAI._do_reinforcement_landing()
+	_check(get_tree().get_nodes_in_group("faction_spain").size() > spain_before_fleet,
+		"reinforcement landing spawns troops")
 
 	# Drive the last of them into the sea.
 	for node in get_tree().get_nodes_in_group("faction_spain"):
